@@ -110,9 +110,33 @@ const saveLocalComplaints = (complaints) => {
   }
 };
 
-// Unified Data Access Layer
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://civicsnap-backend-cbsd.onrender.com';
+
+// Unified Data Access Layer (Render Express API + Supabase + Resilient Local Store)
 export const civicDataService = {
   async getComplaints() {
+    // 1. Try Live Express Backend API
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/complaints`, {
+        headers: { 'Accept': 'application/json' }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const normalized = data.map((item) => ({
+            ...item,
+            id: item._id || item.id,
+            created_at: item.created_at || item.date || new Date().toISOString()
+          }));
+          saveLocalComplaints(normalized);
+          return normalized;
+        }
+      }
+    } catch (apiErr) {
+      console.warn('Backend API fetch unavailable, checking alternate stores:', apiErr);
+    }
+
+    // 2. Try Supabase if configured
     if (isSupabaseConfigured) {
       try {
         const { data, error } = await supabase
@@ -124,20 +148,43 @@ export const civicDataService = {
         return data || [];
       } catch (err) {
         console.warn('Supabase fetch failed, falling back to local store:', err);
-        return getLocalComplaints();
       }
     }
+
+    // 3. Resilient Local Offline Store
     return getLocalComplaints();
   },
 
   async createComplaint(complaintData) {
     const newRecord = {
       ...complaintData,
-      id: isSupabaseConfigured ? undefined : 'c_' + Date.now(),
       status: 'Reported',
       created_at: new Date().toISOString()
     };
 
+    // 1. Try Live Express Backend API
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/complaints`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newRecord)
+      });
+      if (res.ok) {
+        const created = await res.json();
+        const normalized = {
+          ...created,
+          id: created._id || created.id || 'c_' + Date.now(),
+          created_at: created.created_at || created.date || new Date().toISOString()
+        };
+        const localList = getLocalComplaints();
+        saveLocalComplaints([normalized, ...localList]);
+        return normalized;
+      }
+    } catch (apiErr) {
+      console.warn('Backend API insert failed, trying alternate stores:', apiErr);
+    }
+
+    // 2. Try Supabase if configured
     if (isSupabaseConfigured) {
       try {
         const { data, error } = await supabase
@@ -153,6 +200,7 @@ export const civicDataService = {
       }
     }
 
+    // 3. Resilient Local Offline Store
     const localList = getLocalComplaints();
     const created = {
       ...newRecord,
@@ -171,6 +219,29 @@ export const civicDataService = {
       updated_at: new Date().toISOString()
     };
 
+    // 1. Try Live Express Backend API
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/complaints/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        const normalized = {
+          ...updated,
+          id: updated._id || updated.id || id
+        };
+        const localList = getLocalComplaints();
+        const nextList = localList.map((c) => (c.id === id || c._id === id ? normalized : c));
+        saveLocalComplaints(nextList);
+        return normalized;
+      }
+    } catch (apiErr) {
+      console.warn('Backend API status update failed, trying alternate stores:', apiErr);
+    }
+
+    // 2. Try Supabase if configured
     if (isSupabaseConfigured) {
       try {
         const { data, error } = await supabase
@@ -187,9 +258,10 @@ export const civicDataService = {
       }
     }
 
+    // 3. Resilient Local Offline Store
     const localList = getLocalComplaints();
     const updated = localList.map((item) => {
-      if (item.id === id) {
+      if (item.id === id || item._id === id) {
         return {
           ...item,
           ...payload
@@ -198,6 +270,6 @@ export const civicDataService = {
       return item;
     });
     saveLocalComplaints(updated);
-    return updated.find((c) => c.id === id);
+    return updated.find((c) => c.id === id || c._id === id);
   }
 };
