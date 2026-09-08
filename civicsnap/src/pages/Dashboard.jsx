@@ -61,11 +61,12 @@ const Dashboard = () => {
 
   const navigate = useNavigate();
   const userId = localStorage.getItem('userId');
+  const userRole = localStorage.getItem('userRole');
   const isGuest = !userId;
-  const isAuthorityUser = userId === 'demo-admin-id' || localStorage.getItem('userRole') === 'authority';
+  const isAuthorityUser = Boolean(userRole === 'authority' || (userId && userId.includes('admin')));
 
-  // Toggle for simulation/demonstration of Authority capabilities
-  const [authorityMode, setAuthorityMode] = useState(isAuthorityUser);
+  // By default, everyone opens the standard Citizen Community Feed
+  const [authorityMode, setAuthorityMode] = useState(false);
 
   useEffect(() => {
     loadComplaints();
@@ -308,7 +309,7 @@ const Dashboard = () => {
           </div>
           <div className="profile-badge-text">
             <strong>{isGuest ? 'Guest Citizen' : (isAuthorityUser ? 'Municipal Officer' : 'John Citizen')}</strong>
-            <span>{isGuest ? 'Guest Access' : (authorityMode ? 'Authority Mode' : 'Verified Citizen')}</span>
+            <span>{isGuest ? 'Guest Access' : (isAuthorityUser ? (authorityMode ? 'Authority Mode' : 'Authority Officer') : 'Verified Citizen')}</span>
           </div>
         </div>
 
@@ -316,7 +317,10 @@ const Dashboard = () => {
           <button 
             type="button"
             className={`nav-item ${activeTab === 'feed' ? 'active' : ''}`} 
-            onClick={() => setActiveTab('feed')}
+            onClick={() => {
+              setActiveTab('feed');
+              setAuthorityMode(false);
+            }}
           >
             <Home size={18} />
             <span>Community Feed</span>
@@ -333,17 +337,19 @@ const Dashboard = () => {
             </button>
           )}
 
-          <button 
-            type="button"
-            className={`nav-item ${activeTab === 'authority' || authorityMode ? 'active authority-nav' : ''}`} 
-            onClick={() => {
-              setActiveTab('authority');
-              setAuthorityMode(true);
-            }}
-          >
-            <Shield size={18} />
-            <span>Authority Portal</span>
-          </button>
+          {isAuthorityUser && (
+            <button 
+              type="button"
+              className={`nav-item ${activeTab === 'authority' ? 'active authority-nav' : ''}`} 
+              onClick={() => {
+                setActiveTab('authority');
+                setAuthorityMode(true);
+              }}
+            >
+              <Shield size={18} />
+              <span>Authority Portal</span>
+            </button>
+          )}
 
           <Link to="/" className="nav-item back-home-nav">
             <ChevronRight size={18} />
@@ -363,6 +369,7 @@ const Dashboard = () => {
               className="nav-item logout" 
               onClick={() => {
                 localStorage.removeItem('userId');
+                localStorage.removeItem('userEmail');
                 localStorage.removeItem('userRole');
                 navigate('/login');
               }}
@@ -399,14 +406,16 @@ const Dashboard = () => {
           </div>
 
           <div className="header-actions">
-            <button
-              type="button"
-              className={`authority-toggle-btn ${authorityMode ? 'active' : ''}`}
-              onClick={() => setAuthorityMode(!authorityMode)}
-            >
-              <Shield size={16} />
-              <span>{authorityMode ? 'Authority Mode Active' : 'Switch to Authority Mode'}</span>
-            </button>
+            {isAuthorityUser && (
+              <button
+                type="button"
+                className={`authority-toggle-btn ${authorityMode ? 'active' : ''}`}
+                onClick={() => setAuthorityMode(!authorityMode)}
+              >
+                <Shield size={16} />
+                <span>{authorityMode ? 'Authority Mode Active' : 'Switch to Authority View'}</span>
+              </button>
+            )}
 
             <button type="button" className="create-btn interactive-hover" onClick={handleOpenCreateModal}>
               <Camera size={16} />
