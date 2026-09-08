@@ -165,7 +165,7 @@ function Landing() {
                   <span className="ticket-time">2 mins ago</span>
                 </div>
                 <h4 className="ticket-title">Hazardous Pothole Pinpointed</h4>
-                <p className="ticket-loc"><MapPin size={13} /> Main St &amp; Elm Ave Intersection</p>
+                <p className="ticket-loc"><MapPin size={13} /> MG Road near Metro Pillar 42</p>
                 <div className="ticket-meta">
                   <span className="ticket-tag priority">Emergency Severity</span>
                   <span className="ticket-tag status">Under Review</span>
