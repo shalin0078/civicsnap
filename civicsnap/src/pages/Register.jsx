@@ -35,7 +35,8 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/register', {
+      const apiBase = import.meta.env.VITE_API_BASE_URL || 'https://civicsnap-backend-cbsd.onrender.com';
+      const res = await fetch(`${apiBase}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
