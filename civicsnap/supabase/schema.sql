@@ -22,16 +22,22 @@ CREATE TABLE IF NOT EXISTS public.complaints (
     priority TEXT NOT NULL DEFAULT 'Medium' CHECK (priority IN ('Low', 'Medium', 'High', 'Emergency')),
     status TEXT NOT NULL DEFAULT 'Reported' CHECK (status IN ('Reported', 'Under Review', 'In Progress', 'Resolved')),
     photo_url TEXT,
-    user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    user_id TEXT DEFAULT NULL,
     author_name TEXT DEFAULT 'Citizen',
     is_guest BOOLEAN NOT NULL DEFAULT false,
     guest_name TEXT,
     guest_contact TEXT,
+    upvotes INTEGER NOT NULL DEFAULT 1,
     resolution_notes TEXT,
     resolved_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_complaints_created_at ON public.complaints (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_complaints_status ON public.complaints (status);
+CREATE INDEX IF NOT EXISTS idx_complaints_category ON public.complaints (category);
 
 -- 3. Enable Row Level Security (RLS)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -39,38 +45,46 @@ ALTER TABLE public.complaints ENABLE ROW LEVEL SECURITY;
 
 -- 4. Complaints RLS Policies
 -- Allow anyone (authenticated and guest) to view complaints
+DROP POLICY IF EXISTS "Public complaints are viewable by everyone" ON public.complaints;
 CREATE POLICY "Public complaints are viewable by everyone" 
 ON public.complaints FOR SELECT 
 USING (true);
 
 -- Allow anyone (authenticated and guest) to insert complaints
+DROP POLICY IF EXISTS "Anyone can report a complaint" ON public.complaints;
 CREATE POLICY "Anyone can report a complaint" 
 ON public.complaints FOR INSERT 
 WITH CHECK (true);
 
--- Allow updates to complaints (for status changes and resolution notes)
+-- Allow updates to complaints (for status changes, upvotes, and resolution notes)
+DROP POLICY IF EXISTS "Allow status updates on complaints" ON public.complaints;
 CREATE POLICY "Allow status updates on complaints" 
 ON public.complaints FOR UPDATE 
 USING (true);
 
 -- 5. Profiles RLS Policies
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON public.profiles;
 CREATE POLICY "Public profiles are viewable by everyone" 
 ON public.profiles FOR SELECT 
 USING (true);
 
+DROP POLICY IF EXISTS "Users can insert their own profile" ON public.profiles;
 CREATE POLICY "Users can insert their own profile" 
 ON public.profiles FOR INSERT 
 WITH CHECK (true);
 
--- 6. Seed Initial Demo Authority and Citizen Profiles
+-- 6. Enable Realtime Publications
+ALTER PUBLICATION supabase_realtime ADD TABLE public.complaints;
+
+-- 7. Seed Initial Demo Authority and Citizen Profiles
 INSERT INTO public.profiles (email, username, role)
 VALUES 
     ('admin@civicsnap.com', 'Municipal Admin', 'authority'),
     ('user@civicsnap.com', 'John Citizen', 'citizen')
 ON CONFLICT (email) DO NOTHING;
 
--- 7. Seed Initial Complaints
-INSERT INTO public.complaints (title, category, description, location, priority, status, author_name)
+-- 8. Seed Initial Complaints
+INSERT INTO public.complaints (title, category, description, location, priority, status, author_name, upvotes)
 VALUES 
     (
         'Overflowing Garbage Bin', 
@@ -79,7 +93,8 @@ VALUES
         'Central Park East Gate',
         'High',
         'Reported',
-        'John Citizen'
+        'John Citizen',
+        14
     ),
     (
         'Deep Pothole on Main Arterial Road',
@@ -88,7 +103,8 @@ VALUES
         'Green Avenue cross section near Metro Pillar 42',
         'Emergency',
         'In Progress',
-        'Commuter Daily'
+        'Commuter Daily',
+        27
     ),
     (
         'Faulty Streetlight Pole',
@@ -97,7 +113,8 @@ VALUES
         'Sector 9 North Promenade',
         'Medium',
         'Under Review',
-        'Neighborhood Watch'
+        'Neighborhood Watch',
+        8
     ),
     (
         'Broken Water Main Pipe',
@@ -106,6 +123,8 @@ VALUES
         '4th Cross Road, Industrial Area',
         'High',
         'Resolved',
-        'Local Resident'
+        'Local Resident',
+        19
     )
 ON CONFLICT DO NOTHING;
+

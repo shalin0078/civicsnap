@@ -70,6 +70,16 @@ const Dashboard = () => {
 
   useEffect(() => {
     loadComplaints();
+
+    const unsubscribe = civicDataService.subscribeToComplaints(() => {
+      civicDataService.getComplaints().then((data) => {
+        if (data) setComplaints(data);
+      });
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
   }, []);
 
   const loadComplaints = async () => {
@@ -110,24 +120,26 @@ const Dashboard = () => {
   };
 
   const handleToggleUpvote = (id) => {
-    setUserUpvotes((prev) => {
-      const hasUpvoted = prev[id];
-      const nextState = { ...prev, [id]: !hasUpvoted };
+    const hasUpvoted = userUpvotes[id];
+    const delta = hasUpvoted ? -1 : 1;
 
-      setComplaints((currentComplaints) =>
-        currentComplaints.map((c) => {
-          if (c.id === id) {
-            const currentCount = c.upvotes || 1;
-            return {
-              ...c,
-              upvotes: hasUpvoted ? Math.max(1, currentCount - 1) : currentCount + 1
-            };
-          }
-          return c;
-        })
-      );
+    setUserUpvotes((prev) => ({ ...prev, [id]: !hasUpvoted }));
 
-      return nextState;
+    setComplaints((currentComplaints) =>
+      currentComplaints.map((c) => {
+        if (c.id === id) {
+          const currentCount = c.upvotes || 1;
+          return {
+            ...c,
+            upvotes: Math.max(1, currentCount + delta)
+          };
+        }
+        return c;
+      })
+    );
+
+    civicDataService.updateComplaintUpvotes(id, delta).catch((err) => {
+      console.warn('Upvote sync notice:', err);
     });
   };
 

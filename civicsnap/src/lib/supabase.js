@@ -283,5 +283,74 @@ export const civicDataService = {
     });
     saveLocalComplaints(updated);
     return updated.find((c) => c.id === id || c._id === id);
+  },
+
+  async updateComplaintUpvotes(id, delta = 1) {
+    // 1. Primary Cloud Store: Supabase
+    if (isSupabaseConfigured) {
+      try {
+        const { data: current } = await supabase
+          .from('complaints')
+          .select('upvotes')
+          .eq('id', id)
+          .single();
+
+        const currentCount = current?.upvotes || 1;
+        const newCount = Math.max(1, currentCount + delta);
+
+        const { data, error } = await supabase
+          .from('complaints')
+          .update({ upvotes: newCount })
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        if (data) {
+          const localList = getLocalComplaints();
+          saveLocalComplaints(localList.map((c) => (c.id === id ? data : c)));
+          return data;
+        }
+      } catch (err) {
+        console.warn('Supabase upvote sync failed, maintaining local count:', err);
+      }
+    }
+
+    // 2. Local fallback
+    const localList = getLocalComplaints();
+    const updated = localList.map((item) => {
+      if (item.id === id || item._id === id) {
+        const count = item.upvotes || 1;
+        return { ...item, upvotes: Math.max(1, count + delta) };
+      }
+      return item;
+    });
+    saveLocalComplaints(updated);
+    return updated.find((c) => c.id === id || c._id === id);
+  },
+
+  subscribeToComplaints(onPayload) {
+    if (!isSupabaseConfigured || !supabase) return () => {};
+
+    try {
+      const channel = supabase
+        .channel('public:complaints')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'complaints' },
+          (payload) => {
+            if (onPayload) onPayload(payload);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    } catch (err) {
+      console.warn('Supabase Realtime subscription error:', err);
+      return () => {};
+    }
   }
 };
+
