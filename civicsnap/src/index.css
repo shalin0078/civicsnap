@@ -1,0 +1,113 @@
+/* CivicSnap Design System & Global Styles */
+
+:root {
+  --font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Color System */
+  --bg-canvas: #090a10;
+  --bg-surface-1: #111322;
+  --bg-surface-2: #181b30;
+  --bg-surface-3: #222642;
+  --bg-glass: rgba(17, 19, 34, 0.75);
+
+  /* Accents & Brand */
+  --accent-primary: #6366f1;
+  --accent-secondary: #a855f7;
+  --accent-light: #c084fc;
+  --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  --accent-glow: rgba(168, 85, 247, 0.25);
+
+  /* Status Colors */
+  --status-reported: #3b82f6;
+  --status-review: #8b5cf6;
+  --status-progress: #f59e0b;
+  --status-resolved: #10b981;
+
+  /* Priority Severity */
+  --priority-emergency: #ef4444;
+  --priority-high: #f97316;
+  --priority-medium: #fbbf24;
+  --priority-low: #38bdf8;
+
+  /* Text Hierarchy */
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  /* Borders & Shadows */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-card: rgba(255, 255, 255, 0.12);
+  --border-active: rgba(168, 85, 247, 0.4);
+  --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 25px rgba(99, 102, 241, 0.2);
+
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--text-primary);
+  background-color: var(--bg-canvas);
+  color-scheme: dark;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-canvas);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(168, 85, 247, 0.4);
+}
+
+/* Base Link and Button Utilities */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* Micro-interaction Helpers */
+.interactive-hover {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;
+}
+
+.interactive-hover:hover {
+  transform: translateY(-2px);
+}

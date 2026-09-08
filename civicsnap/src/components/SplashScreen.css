@@ -1,0 +1,150 @@
+/* CivicSnap 2.0 Splash Screen Stylesheet */
+
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #08090e;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.6s;
+  overflow: hidden;
+}
+
+.splash-screen.fade-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.splash-ambient-mesh {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.2) 0%, rgba(99, 102, 241, 0.08) 50%, transparent 70%);
+  pointer-events: none;
+}
+
+.splash-content {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: splashEntrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes splashEntrance {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.splash-emblem-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+.splash-logo-core {
+  width: 76px;
+  height: 76px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.5), 0 0 20px rgba(168, 85, 247, 0.4);
+  z-index: 5;
+  animation: pulseLogoCore 2s infinite ease-in-out;
+}
+
+@keyframes pulseLogoCore {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+
+.splash-radar-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  pointer-events: none;
+}
+
+.splash-radar-ring.ring-1 {
+  width: 95px;
+  height: 95px;
+  animation: expandRadar 2.2s infinite ease-out;
+}
+
+.splash-radar-ring.ring-2 {
+  width: 125px;
+  height: 125px;
+  animation: expandRadar 2.2s infinite 0.7s ease-out;
+}
+
+@keyframes expandRadar {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+.splash-title {
+  font-size: 3.2rem;
+  font-weight: 800;
+  margin: 0 0 6px;
+  letter-spacing: -1.5px;
+  background: linear-gradient(135deg, #ffffff 30%, #c084fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.splash-tagline {
+  font-size: 0.95rem;
+  color: #94a3b8;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  margin: 0 0 28px;
+}
+
+/* Progress track */
+.splash-progress-track {
+  width: 180px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.splash-progress-bar {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #a855f7);
+  transform: translateX(-100%);
+  animation: splashLoading 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes splashLoading {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(-30%); }
+  100% { transform: translateX(0%); }
+}
