@@ -1,0 +1,9 @@
+{
+  "name": "civicsnap-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix civicsnap install && npm --prefix civicsnap run build",
+    "start": "npm --prefix civicsnap run preview"
+  }
+}

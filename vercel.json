@@ -1,0 +1,10 @@
+{
+  "buildCommand": "npm --prefix civicsnap install && npm --prefix civicsnap run build",
+  "outputDirectory": "civicsnap/dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
