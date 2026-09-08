@@ -112,10 +112,28 @@ const saveLocalComplaints = (complaints) => {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://civicsnap-backend-cbsd.onrender.com';
 
-// Unified Data Access Layer (Render Express API + Supabase + Resilient Local Store)
+// Unified Data Access Layer (Supabase Primary + Render Express API + Resilient Local Store)
 export const civicDataService = {
   async getComplaints() {
-    // 1. Try Live Express Backend API
+    // 1. Primary Cloud Store: Supabase
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('complaints')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        if (data && Array.isArray(data)) {
+          saveLocalComplaints(data);
+          return data;
+        }
+      } catch (err) {
+        console.warn('Supabase fetch failed, falling back to secondary stores:', err);
+      }
+    }
+
+    // 2. Secondary Cloud Store: Live Express Backend API
     try {
       const res = await fetch(`${API_BASE_URL}/api/complaints`, {
         headers: { 'Accept': 'application/json' }
@@ -136,21 +154,6 @@ export const civicDataService = {
       console.warn('Backend API fetch unavailable, checking alternate stores:', apiErr);
     }
 
-    // 2. Try Supabase if configured
-    if (isSupabaseConfigured) {
-      try {
-        const { data, error } = await supabase
-          .from('complaints')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        return data || [];
-      } catch (err) {
-        console.warn('Supabase fetch failed, falling back to local store:', err);
-      }
-    }
-
     // 3. Resilient Local Offline Store
     return getLocalComplaints();
   },
@@ -162,7 +165,27 @@ export const civicDataService = {
       created_at: new Date().toISOString()
     };
 
-    // 1. Try Live Express Backend API
+    // 1. Primary Cloud Store: Supabase
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('complaints')
+          .insert([newRecord])
+          .select()
+          .single();
+
+        if (error) throw error;
+        if (data) {
+          const localList = getLocalComplaints();
+          saveLocalComplaints([data, ...localList]);
+          return data;
+        }
+      } catch (err) {
+        console.warn('Supabase insert failed, falling back to secondary stores:', err);
+      }
+    }
+
+    // 2. Secondary Cloud Store: Live Express Backend API
     try {
       const res = await fetch(`${API_BASE_URL}/api/complaints`, {
         method: 'POST',
@@ -184,22 +207,6 @@ export const civicDataService = {
       console.warn('Backend API insert failed, trying alternate stores:', apiErr);
     }
 
-    // 2. Try Supabase if configured
-    if (isSupabaseConfigured) {
-      try {
-        const { data, error } = await supabase
-          .from('complaints')
-          .insert([newRecord])
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      } catch (err) {
-        console.warn('Supabase insert failed, falling back to local store:', err);
-      }
-    }
-
     // 3. Resilient Local Offline Store
     const localList = getLocalComplaints();
     const created = {
@@ -219,7 +226,29 @@ export const civicDataService = {
       updated_at: new Date().toISOString()
     };
 
-    // 1. Try Live Express Backend API
+    // 1. Primary Cloud Store: Supabase
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('complaints')
+          .update(payload)
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        if (data) {
+          const localList = getLocalComplaints();
+          const nextList = localList.map((c) => (c.id === id ? data : c));
+          saveLocalComplaints(nextList);
+          return data;
+        }
+      } catch (err) {
+        console.warn('Supabase update failed, falling back to secondary stores:', err);
+      }
+    }
+
+    // 2. Secondary Cloud Store: Live Express Backend API
     try {
       const res = await fetch(`${API_BASE_URL}/api/complaints/${id}/status`, {
         method: 'PATCH',
@@ -239,23 +268,6 @@ export const civicDataService = {
       }
     } catch (apiErr) {
       console.warn('Backend API status update failed, trying alternate stores:', apiErr);
-    }
-
-    // 2. Try Supabase if configured
-    if (isSupabaseConfigured) {
-      try {
-        const { data, error } = await supabase
-          .from('complaints')
-          .update(payload)
-          .eq('id', id)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      } catch (err) {
-        console.warn('Supabase update failed, falling back to local store:', err);
-      }
     }
 
     // 3. Resilient Local Offline Store
