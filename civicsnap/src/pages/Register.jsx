@@ -162,13 +162,6 @@ const Register = () => {
             </button>
           </form>
 
-          <div className="guest-access-bar">
-            <span>Don't want to create an account?</span>
-            <Link to="/dashboard" className="guest-link">
-              Continue as Guest Citizen
-            </Link>
-          </div>
-
           <div className="auth-footer-nav">
             <p>Already have an account? <Link to="/login" className="switch-auth-link">Sign in here</Link></p>
           </div>

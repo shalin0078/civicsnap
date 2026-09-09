@@ -148,14 +148,6 @@ const Login = () => {
             </button>
           </form>
 
-          {/* Guest Shortcut */}
-          <div className="guest-access-bar">
-            <span>Prefer not to sign in right now?</span>
-            <Link to="/dashboard" className="guest-link">
-              Continue as Guest Citizen
-            </Link>
-          </div>
-
           {/* Footer Link */}
           <div className="auth-footer-nav">
             <p>New to CivicSnap? <Link to="/register" className="switch-auth-link">Create an account</Link></p>

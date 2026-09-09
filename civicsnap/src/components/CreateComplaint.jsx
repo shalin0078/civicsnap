@@ -41,7 +41,7 @@ const priorityLevels = [
   { id: 'Emergency', label: 'Emergency', desc: 'Immediate safety or structural hazard' },
 ];
 
-const CreateComplaint = ({ onClose, onSubmit, isGuestMode = false, initialCategory = null }) => {
+const CreateComplaint = ({ onClose, onSubmit, initialCategory = null }) => {
   const [step, setStep] = useState(initialCategory ? 2 : 1);
   const [isLocating, setIsLocating] = useState(false);
   const [locationSuccess, setLocationSuccess] = useState(false);
@@ -123,10 +123,7 @@ const CreateComplaint = ({ onClose, onSubmit, isGuestMode = false, initialCatego
     latitude: null,
     longitude: null,
     priority: 'Medium',
-    photo_url: '',
-    guest_name: '',
-    guest_contact: '',
-    is_guest: isGuestMode
+    photo_url: ''
   });
 
   const handleCategorySelect = (categoryName) => {
@@ -281,7 +278,7 @@ const CreateComplaint = ({ onClose, onSubmit, isGuestMode = false, initialCatego
           <h2 className="header-title">Select Issue Category</h2>
         </div>
         <p className="header-subtitle">
-          {isGuestMode ? 'Guest Reporting Mode: Choose the type of civic problem' : 'Choose the category of problem you wish to report'}
+          Choose the category of problem you wish to report
         </p>
       </header>
 
@@ -510,29 +507,6 @@ const CreateComplaint = ({ onClose, onSubmit, isGuestMode = false, initialCatego
             rows={3}
           ></textarea>
         </div>
-
-        {/* Guest Reporting Info (if in guest mode) */}
-        {isGuestMode && (
-          <div className="guest-info-section">
-            <span className="guest-info-title">Guest Contact Details (Optional)</span>
-            <div className="guest-inputs-grid">
-              <input
-                type="text"
-                name="guest_name"
-                value={formData.guest_name}
-                onChange={handleChange}
-                placeholder="Your Name"
-              />
-              <input
-                type="text"
-                name="guest_contact"
-                value={formData.guest_contact}
-                onChange={handleChange}
-                placeholder="Phone or Email for updates"
-              />
-            </div>
-          </div>
-        )}
 
         <div className="form-actions">
           <button 

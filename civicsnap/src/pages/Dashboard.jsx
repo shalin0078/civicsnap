@@ -64,7 +64,6 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const userId = localStorage.getItem('userId');
   const userRole = localStorage.getItem('userRole');
-  const isGuest = !userId;
   const isAuthorityUser = Boolean(userRole === 'authority' || (userId && userId.includes('admin')));
 
   // Authority mode defaults to active for authority users
@@ -75,6 +74,11 @@ const Dashboard = () => {
   const isMatch = (c, id) => String(c?.id || c?._id) === String(id);
 
   useEffect(() => {
+    if (!userId) {
+      navigate('/login', { replace: true });
+      return;
+    }
+
     loadComplaints();
 
     const unsubscribe = civicDataService.subscribeToComplaints(() => {
@@ -86,7 +90,7 @@ const Dashboard = () => {
     return () => {
       if (typeof unsubscribe === 'function') unsubscribe();
     };
-  }, []);
+  }, [userId, navigate]);
 
   const loadComplaints = async () => {
     setLoading(true);
@@ -109,14 +113,14 @@ const Dashboard = () => {
   };
 
   const handleCreateComplaint = async (newComplaintData) => {
-    const authorName = isGuest 
-      ? (newComplaintData.guest_name || 'Guest Citizen')
-      : (isAuthorityUser ? 'Municipal Admin' : 'John Citizen');
+    const authorName = isAuthorityUser 
+      ? 'Municipal Admin' 
+      : (localStorage.getItem('userName') || localStorage.getItem('userEmail')?.split('@')[0] || 'John Citizen');
 
     const created = await civicDataService.createComplaint({
       ...newComplaintData,
       author_name: authorName,
-      user_id: userId || null,
+      user_id: userId,
       upvotes: 1
     });
 
@@ -393,14 +397,14 @@ const Dashboard = () => {
           </button>
         </div>
 
-        {/* User / Guest Status Pill */}
+        {/* User Profile Badge */}
         <div className="user-profile-badge">
           <div className="avatar-circle">
-            {isGuest ? 'G' : (isAuthorityUser ? 'A' : 'U')}
+            {isAuthorityUser ? 'A' : 'U'}
           </div>
           <div className="profile-badge-text">
-            <strong>{isGuest ? 'Guest Citizen' : (isAuthorityUser ? 'Municipal Officer' : 'John Citizen')}</strong>
-            <span>{isGuest ? 'Guest Access' : (isAuthorityUser ? (authorityMode ? 'Authority Mode' : 'Authority Officer') : 'Verified Citizen')}</span>
+            <strong>{isAuthorityUser ? 'Municipal Officer' : (localStorage.getItem('userName') || 'Verified Citizen')}</strong>
+            <span>{isAuthorityUser ? (authorityMode ? 'Authority Mode' : 'Authority Officer') : (localStorage.getItem('userEmail') || 'Citizen Account')}</span>
           </div>
         </div>
 
@@ -418,19 +422,17 @@ const Dashboard = () => {
             <span>Community Feed</span>
           </button>
           
-          {!isGuest && (
-            <button 
-              type="button"
-              className={`nav-item ${activeTab === 'my-reports' ? 'active' : ''}`} 
-              onClick={() => {
-                setActiveTab('my-reports');
-                setMobileSidebarOpen(false);
-              }}
-            >
-              <FileText size={18} />
-              <span>My Reports</span>
-            </button>
-          )}
+          <button 
+            type="button"
+            className={`nav-item ${activeTab === 'my-reports' ? 'active' : ''}`} 
+            onClick={() => {
+              setActiveTab('my-reports');
+              setMobileSidebarOpen(false);
+            }}
+          >
+            <FileText size={18} />
+            <span>My Reports</span>
+          </button>
 
           {isAuthorityUser && (
             <button 
@@ -454,27 +456,21 @@ const Dashboard = () => {
         </nav>
 
         <div className="sidebar-footer">
-          {isGuest ? (
-            <Link to="/login" className="btn-sidebar-login" onClick={() => setMobileSidebarOpen(false)}>
-              <span>Sign In / Register</span>
-              <ArrowRight size={15} />
-            </Link>
-          ) : (
-            <button 
-              type="button" 
-              className="nav-item logout" 
-              onClick={() => {
-                setMobileSidebarOpen(false);
-                localStorage.removeItem('userId');
-                localStorage.removeItem('userEmail');
-                localStorage.removeItem('userRole');
-                navigate('/login');
-              }}
-            >
-              <LogOut size={18} />
-              <span>Sign Out</span>
-            </button>
-          )}
+          <button 
+            type="button" 
+            className="nav-item logout" 
+            onClick={() => {
+              setMobileSidebarOpen(false);
+              localStorage.removeItem('userId');
+              localStorage.removeItem('userEmail');
+              localStorage.removeItem('userRole');
+              localStorage.removeItem('userName');
+              navigate('/login');
+            }}
+          >
+            <LogOut size={18} />
+            <span>Sign Out</span>
+          </button>
         </div>
       </aside>
 
@@ -763,8 +759,7 @@ const Dashboard = () => {
                           </div>
 
                           <div className="card-reporter-row">
-                            <span>Logged by <strong>{complaint.author_name || 'Citizen'}</strong></span>
-                            {complaint.is_guest && <span className="guest-badge">Guest Submission</span>}
+                            <span>Logged by <strong>{complaint.author_name || 'Verified Citizen'}</strong></span>
                           </div>
                         </div>
 
@@ -938,20 +933,18 @@ const Dashboard = () => {
             <span>Feed</span>
           </button>
 
-          {!isGuest && (
-            <button 
-              type="button" 
-              className={`mobile-tab-item ${activeTab === 'my-reports' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab('my-reports');
-                setAuthorityMode(false);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-            >
-              <FileText size={19} />
-              <span>My Snaps</span>
-            </button>
-          )}
+          <button 
+            type="button" 
+            className={`mobile-tab-item ${activeTab === 'my-reports' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('my-reports');
+              setAuthorityMode(false);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          >
+            <FileText size={19} />
+            <span>My Snaps</span>
+          </button>
 
           {/* Central Raised Camera Snap Button */}
           <button 
@@ -1070,7 +1063,6 @@ const Dashboard = () => {
       {/* Render Create Complaint Modal */}
       {isCreateModalOpen && (
         <CreateComplaint
-          isGuestMode={isGuest}
           onClose={handleCloseCreateModal}
           onSubmit={handleCreateComplaint}
         />

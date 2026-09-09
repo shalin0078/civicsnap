@@ -20,32 +20,12 @@ import {
   Activity,
   Users
 } from 'lucide-react';
-import CreateComplaint from '../components/CreateComplaint';
 import CivicLogo from '../components/CivicLogo';
-import { civicDataService } from '../lib/supabase';
 import './Landing.css';
 
 function Landing() {
-  const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
-
-  const handleOpenCategoryReport = (categoryName) => {
-    setSelectedCategory(categoryName);
-    setIsGuestModalOpen(true);
-  };
-
-  const handleGuestSubmit = async (complaintData) => {
-    await civicDataService.createComplaint({
-      ...complaintData,
-      is_guest: true,
-      author_name: complaintData.guest_name || 'Guest Citizen'
-    });
-    setIsGuestModalOpen(false);
-    setSelectedCategory(null);
-    navigate('/dashboard');
-  };
 
   return (
     <div className="landing-page">
@@ -116,13 +96,9 @@ function Landing() {
                 <span>Explore Live Board</span>
                 <ArrowRight size={18} />
               </Link>
-              <button 
-                type="button"
-                className="btn-cta-secondary interactive-hover"
-                onClick={() => setIsGuestModalOpen(true)}
-              >
-                <span>Guest Report an Issue</span>
-              </button>
+              <Link to="/dashboard" className="btn-cta-secondary interactive-hover">
+                <span>Report an Issue</span>
+              </Link>
             </div>
 
             <div className="hero-trust-metrics">
@@ -489,15 +465,11 @@ function Landing() {
           <div className="cta-banner-content">
             <span className="cta-pretitle">Ready to Take Action?</span>
             <h2>Help Us Build Cleaner, Safer Neighborhoods</h2>
-            <p>You can report an issue in under a minute without even creating an account, or sign up to track your submitted reports over time.</p>
+            <p>Sign in to report civic hazards in under a minute, or create an account to track your submitted reports and municipal resolution progress.</p>
             <div className="cta-button-row">
-              <button 
-                type="button" 
-                className="btn-cta-white interactive-hover"
-                onClick={() => setIsGuestModalOpen(true)}
-              >
-                <span>Guest Report an Issue</span>
-              </button>
+              <Link to="/dashboard" className="btn-cta-white interactive-hover">
+                <span>Report an Issue</span>
+              </Link>
               <Link to="/register" className="btn-cta-outline interactive-hover">
                 <span>Create Citizen Profile</span>
               </Link>
@@ -535,7 +507,7 @@ function Landing() {
             <ul>
               <li><Link to="/login">Citizen Sign In</Link></li>
               <li><Link to="/register">Create Account</Link></li>
-              <li><button type="button" className="link-button" onClick={() => setIsGuestModalOpen(true)}>Guest Submission</button></li>
+              <li><Link to="/dashboard">Report an Issue</Link></li>
               <li><Link to="/login">Authority Access</Link></li>
             </ul>
           </div>
@@ -555,19 +527,6 @@ function Landing() {
           <p>&copy; {new Date().getFullYear()} CivicSnap Platform. Built for civic empowerment and public accountability.</p>
         </div>
       </footer>
-
-      {/* Guest Reporting Modal */}
-      {isGuestModalOpen && (
-        <CreateComplaint
-          isGuestMode={true}
-          initialCategory={selectedCategory}
-          onClose={() => {
-            setIsGuestModalOpen(false);
-            setSelectedCategory(null);
-          }}
-          onSubmit={handleGuestSubmit}
-        />
-      )}
     </div>
   );
 }
