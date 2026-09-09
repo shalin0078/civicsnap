@@ -185,11 +185,17 @@ export const civicDataService = {
     };
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
       const res = await fetch(`${API_BASE_URL}/api/complaints/${id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
+
       if (res.ok) {
         const updated = await res.json();
         const normalized = {
@@ -197,18 +203,18 @@ export const civicDataService = {
           id: updated._id || updated.id || id
         };
         const localList = getLocalComplaints();
-        const nextList = localList.map((c) => (c.id === id || c._id === id ? normalized : c));
+        const nextList = localList.map((c) => (String(c.id) === String(id) || String(c._id) === String(id) ? normalized : c));
         saveLocalComplaints(nextList);
         return normalized;
       }
     } catch (apiErr) {
-      console.warn('Backend status update failed, saving locally:', apiErr);
+      console.warn('Backend status update notice, updating locally:', apiErr);
     }
 
-    // Local fallback
+    // Resilient local fallback
     const localList = getLocalComplaints();
     const updated = localList.map((item) => {
-      if (item.id === id || item._id === id) {
+      if (String(item.id) === String(id) || String(item._id) === String(id)) {
         return {
           ...item,
           status: newStatus,
@@ -219,7 +225,7 @@ export const civicDataService = {
       return item;
     });
     saveLocalComplaints(updated);
-    return updated.find((c) => c.id === id || c._id === id);
+    return updated.find((c) => String(c.id) === String(id) || String(c._id) === String(id));
   },
 
   /**

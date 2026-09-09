@@ -26,15 +26,15 @@
       "latitude": 28.6139,
       "longitude": 77.209,
       "priority": "High",
-      "status": "Reported",
+      "status": "Under Review",
       "photo_url": "/images/garbage-dump.jpg",
       "author_name": "John Citizen",
       "is_guest": false,
       "upvotes": 14,
-      "resolution_notes": null,
       "resolved_at": null,
       "date": "2026-09-08T00:09:38.621Z",
-      "created_at": "2026-09-08T00:09:38.622Z"
+      "created_at": "2026-09-08T00:09:38.622Z",
+      "updated_at": "2026-09-09T05:30:26.135Z"
     },
     {
       "_id": "c2",

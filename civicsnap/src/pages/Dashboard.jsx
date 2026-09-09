@@ -67,8 +67,12 @@ const Dashboard = () => {
   const isGuest = !userId;
   const isAuthorityUser = Boolean(userRole === 'authority' || (userId && userId.includes('admin')));
 
-  // By default, everyone opens the standard Citizen Community Feed
-  const [authorityMode, setAuthorityMode] = useState(false);
+  // Authority mode defaults to active for authority users
+  const [authorityMode, setAuthorityMode] = useState(isAuthorityUser);
+  const [updatingStatusId, setUpdatingStatusId] = useState(null);
+
+  const getComplaintId = (c) => String(c?.id || c?._id || '');
+  const isMatch = (c, id) => String(c?.id || c?._id) === String(id);
 
   useEffect(() => {
     loadComplaints();
@@ -146,31 +150,87 @@ const Dashboard = () => {
   };
 
   const handleStatusChange = async (complaintId, newStatus) => {
+    if (!complaintId) return;
+
     if (newStatus === 'Resolved') {
-      const target = complaints.find((c) => c.id === complaintId);
-      setResolvingComplaint(target);
-      setResolutionText('');
+      const target = complaints.find((c) => isMatch(c, complaintId));
+      if (target) {
+        setResolvingComplaint(target);
+        setResolutionText(target.resolution_notes || '');
+      }
       return;
     }
 
-    const updated = await civicDataService.updateComplaintStatus(complaintId, newStatus);
-    if (updated) {
-      setComplaints((prev) => prev.map((c) => (c.id === complaintId ? updated : c)));
-      showToast(`Report updated to status "${newStatus}".`, 'success', 'Status Updated');
+    const cIdStr = String(complaintId);
+    setUpdatingStatusId(cIdStr);
+
+    // 1. Instant Optimistic State Update (0ms latency for seamless responsiveness)
+    setComplaints((prev) =>
+      prev.map((c) => {
+        if (isMatch(c, complaintId)) {
+          return {
+            ...c,
+            status: newStatus,
+            resolution_notes: null,
+            resolved_at: null
+          };
+        }
+        return c;
+      })
+    );
+
+    showToast(`Status updated to "${newStatus}".`, 'success', 'Status Updated');
+
+    try {
+      const updated = await civicDataService.updateComplaintStatus(complaintId, newStatus, null);
+      if (updated) {
+        setComplaints((prev) =>
+          prev.map((c) => (isMatch(c, complaintId) ? { ...c, ...updated, status: newStatus } : c))
+        );
+      }
+    } catch (err) {
+      console.error('Status sync error:', err);
+    } finally {
+      setUpdatingStatusId(null);
     }
   };
 
   const submitResolution = async () => {
     if (!resolvingComplaint) return;
+    const complaintId = getComplaintId(resolvingComplaint);
     const notes = resolutionText.trim() || 'Issue inspected, repaired, and certified resolved by municipal engineering squad.';
-    const updated = await civicDataService.updateComplaintStatus(resolvingComplaint.id, 'Resolved', notes);
-    
-    if (updated) {
-      setComplaints((prev) => prev.map((c) => (c.id === resolvingComplaint.id ? updated : c)));
-      showToast(`Report CS-${resolvingComplaint.id.toString().slice(-4).toUpperCase()} certified and resolved.`, 'success', 'Resolution Certified');
-    }
+    const nowIso = new Date().toISOString();
+
+    // 1. Instant Optimistic Resolution
+    setComplaints((prev) =>
+      prev.map((c) => {
+        if (isMatch(c, complaintId)) {
+          return {
+            ...c,
+            status: 'Resolved',
+            resolution_notes: notes,
+            resolved_at: nowIso
+          };
+        }
+        return c;
+      })
+    );
+
+    const targetCode = `CS-${complaintId.slice(-4).toUpperCase()}`;
+    showToast(`Report ${targetCode} certified and resolved.`, 'success', 'Resolution Certified');
     setResolvingComplaint(null);
     setResolutionText('');
+
+    try {
+      const updated = await civicDataService.updateComplaintStatus(complaintId, 'Resolved', notes);
+      if (updated) {
+        setComplaints((prev) =>
+          prev.map((c) => (isMatch(c, complaintId) ? { ...c, ...updated, status: 'Resolved', resolution_notes: notes } : c))
+        );
+      }
+    } catch (err) {
+      console.warn('Resolution server sync notice:', err);
+    }
   };
 
   const handleCopyTracking = (complaint) => {
@@ -664,12 +724,13 @@ const Dashboard = () => {
             ) : (
               <div className={`complaints-cards-flow ${viewMode === 'list' ? 'list-layout' : 'grid-layout'}`}>
                 {filteredComplaints.map((complaint) => {
+                  const cId = getComplaintId(complaint);
                   const currentStageIdx = getStageIndex(complaint.status);
-                  const isUpvoted = userUpvotes[complaint.id];
-                  const trackingId = `CS-${complaint.id.toString().slice(-4).toUpperCase()}`;
+                  const isUpvoted = userUpvotes[cId];
+                  const trackingId = `CS-${cId.slice(-4).toUpperCase()}`;
 
                   return (
-                    <article key={complaint.id} className="complaint-card-modern">
+                    <article key={cId} className="complaint-card-modern">
                       {/* Top Meta Bar */}
                       <div className="card-top-bar">
                         <div className="badge-cluster">
@@ -771,7 +832,7 @@ const Dashboard = () => {
                           <button 
                             type="button" 
                             className={`btn-endorse ${isUpvoted ? 'endorsed' : ''}`}
-                            onClick={() => handleToggleUpvote(complaint.id)}
+                            onClick={() => handleToggleUpvote(cId)}
                             title="Indicate that you also experience this issue"
                           >
                             <ThumbsUp size={14} />
@@ -791,36 +852,66 @@ const Dashboard = () => {
                         </div>
 
                         {/* Authority Actions Toolbar */}
-                        {authorityMode && (
+                        {(authorityMode || isAuthorityUser) && (
                           <div className="authority-control-strip">
-                            <span className="authority-strip-label"><Shield size={13} /> Authority:</span>
-                            {complaint.status !== 'Under Review' && (
+                            <div className="authority-strip-header">
+                              <span className="authority-strip-label">
+                                <Shield size={14} /> Authority Actions:
+                              </span>
+                              <span className="authority-current-status">
+                                Current: <strong>{complaint.status}</strong>
+                              </span>
+                            </div>
+
+                            <div className="authority-buttons-cluster">
+                              {/* 1. Reset / Reported */}
                               <button
                                 type="button"
-                                className="btn-authority-chip review"
-                                onClick={() => handleStatusChange(complaint.id, 'Under Review')}
+                                className={`btn-authority-chip reset ${complaint.status === 'Reported' ? 'current-active' : ''}`}
+                                onClick={() => handleStatusChange(cId, 'Reported')}
+                                disabled={updatingStatusId === cId}
+                                title="Set status back to Reported / Re-open"
                               >
-                                Under Review
+                                <RotateCcw size={13} />
+                                <span>Reported {complaint.status === 'Reported' && '✓'}</span>
                               </button>
-                            )}
-                            {complaint.status !== 'In Progress' && (
+
+                              {/* 2. Under Review / Re-review */}
                               <button
                                 type="button"
-                                className="btn-authority-chip progress"
-                                onClick={() => handleStatusChange(complaint.id, 'In Progress')}
+                                className={`btn-authority-chip review ${complaint.status === 'Under Review' ? 'current-active' : ''}`}
+                                onClick={() => handleStatusChange(cId, 'Under Review')}
+                                disabled={updatingStatusId === cId}
+                                title="Place under active municipal review / Re-review"
                               >
-                                Dispatch Crew
+                                <Clock size={13} />
+                                <span>Under Review {complaint.status === 'Under Review' && '✓'}</span>
                               </button>
-                            )}
-                            {complaint.status !== 'Resolved' && (
+
+                              {/* 3. In Progress */}
                               <button
                                 type="button"
-                                className="btn-authority-chip resolve"
-                                onClick={() => handleStatusChange(complaint.id, 'Resolved')}
+                                className={`btn-authority-chip progress ${complaint.status === 'In Progress' ? 'current-active' : ''}`}
+                                onClick={() => handleStatusChange(cId, 'In Progress')}
+                                disabled={updatingStatusId === cId}
+                                title="Dispatch municipal repair crew"
                               >
-                                Mark Resolved
+                                <AlertTriangle size={13} />
+                                <span>In Progress {complaint.status === 'In Progress' && '✓'}</span>
                               </button>
-                            )}
+
+                              {/* 4. Resolved / Edit Resolution */}
+                              <button
+                                type="button"
+                                className={`btn-authority-chip resolve ${complaint.status === 'Resolved' ? 'current-active' : ''}`}
+                                onClick={() => handleStatusChange(cId, 'Resolved')}
+                                disabled={updatingStatusId === cId}
+                                title={complaint.status === 'Resolved' ? 'Edit official resolution report' : 'Certify and close issue'}
+                              >
+                                <CheckCircle2 size={13} />
+                                <span>{complaint.status === 'Resolved' ? 'Edit Resolution ✓' : 'Mark Resolved'}</span>
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -935,7 +1026,9 @@ const Dashboard = () => {
                 <button type="button" className="icon-btn" onClick={() => setResolvingComplaint(null)}>
                   <X size={20} />
                 </button>
-                <h3 className="header-title">Certify Issue Resolution</h3>
+                <h3 className="header-title">
+                  {resolvingComplaint.status === 'Resolved' ? 'Edit Resolution Certificate' : 'Certify Issue Resolution'}
+                </h3>
               </div>
               <p className="header-subtitle">{resolvingComplaint.title}</p>
             </header>
@@ -966,7 +1059,7 @@ const Dashboard = () => {
                   className="btn-submit" 
                   onClick={submitResolution}
                 >
-                  Certify &amp; Close Issue
+                  {resolvingComplaint.status === 'Resolved' ? 'Update & Save Remarks' : 'Certify & Close Issue'}
                 </button>
               </div>
             </div>

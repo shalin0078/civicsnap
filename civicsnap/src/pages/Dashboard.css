@@ -949,12 +949,24 @@
   padding: 10px 14px;
 }
 
-/* Authority Control Strip */
+/* Authority Control Strip & Lifecycle Manager */
 .authority-control-strip {
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: rgba(245, 158, 11, 0.04);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 10px;
+}
+
+.authority-strip-header {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .authority-strip-label {
@@ -962,28 +974,126 @@
   font-weight: 700;
   color: #fbbf24;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+}
+
+.authority-current-status {
+  font-size: 0.76rem;
+  color: #94a3b8;
+}
+
+.authority-current-status strong {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 7px;
+  border-radius: 5px;
+}
+
+.authority-buttons-cluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
 }
 
 .btn-authority-chip {
-  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid transparent;
   font-size: 0.78rem;
-  font-weight: 700;
-  padding: 6px 12px;
-  border-radius: 6px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: transform 0.15s;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
 }
 
-.btn-authority-chip:hover {
+.btn-authority-chip:hover:not(:disabled) {
   transform: translateY(-1px);
 }
 
-.btn-authority-chip.review { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
-.btn-authority-chip.progress { background: rgba(245, 158, 11, 0.2); color: #fde68a; }
-.btn-authority-chip.resolve { background: rgba(16, 185, 129, 0.25); color: #6ee7b7; }
+.btn-authority-chip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* 1. Reset / Reported */
+.btn-authority-chip.reset {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.25);
+  color: #cbd5e1;
+}
+.btn-authority-chip.reset:hover:not(:disabled) {
+  background: rgba(148, 163, 184, 0.22);
+  color: #fff;
+}
+.btn-authority-chip.reset.current-active {
+  background: rgba(148, 163, 184, 0.3);
+  border-color: #94a3b8;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 0 10px rgba(148, 163, 184, 0.35);
+}
+
+/* 2. Review */
+.btn-authority-chip.review {
+  background: rgba(59, 130, 246, 0.14);
+  border-color: rgba(59, 130, 246, 0.28);
+  color: #93c5fd;
+}
+.btn-authority-chip.review:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.25);
+  color: #fff;
+}
+.btn-authority-chip.review.current-active {
+  background: rgba(59, 130, 246, 0.3);
+  border-color: #3b82f6;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.35);
+}
+
+/* 3. In Progress */
+.btn-authority-chip.progress {
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.28);
+  color: #fde68a;
+}
+.btn-authority-chip.progress:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.25);
+  color: #fff;
+}
+.btn-authority-chip.progress.current-active {
+  background: rgba(245, 158, 11, 0.3);
+  border-color: #f59e0b;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.35);
+}
+
+/* 4. Resolved */
+.btn-authority-chip.resolve {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.28);
+  color: #6ee7b7;
+}
+.btn-authority-chip.resolve:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.26);
+  color: #fff;
+}
+.btn-authority-chip.resolve.current-active {
+  background: rgba(16, 185, 129, 0.32);
+  border-color: #10b981;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+}
 
 /* Image Lightbox */
 .image-lightbox-overlay {
@@ -1480,5 +1590,19 @@
 
   .citizen-action-cluster {
     grid-template-columns: 1fr;
+  }
+
+  .authority-buttons-cluster {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .btn-authority-chip {
+    width: 100%;
+    justify-content: center;
+    padding: 9px 6px;
+    font-size: 0.72rem;
   }
 }
