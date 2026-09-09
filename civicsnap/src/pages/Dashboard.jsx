@@ -27,7 +27,8 @@ import {
   Download,
   LayoutGrid,
   List,
-  RotateCcw
+  RotateCcw,
+  Menu
 } from 'lucide-react';
 import CreateComplaint from '../components/CreateComplaint';
 import CivicLogo from '../components/CivicLogo';
@@ -48,6 +49,7 @@ const Dashboard = () => {
   const [statusFilter, setStatusFilter] = useState('All');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const { showToast } = useToast();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Photo modal preview
   const [expandedImage, setExpandedImage] = useState(null);
@@ -302,16 +304,33 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-layout">
+      {/* Mobile Backdrop Overlay */}
+      {mobileSidebarOpen && (
+        <div 
+          className="sidebar-backdrop" 
+          onClick={() => setMobileSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Sidebar Navigation */}
-      <aside className="dashboard-sidebar">
+      <aside className={`dashboard-sidebar ${mobileSidebarOpen ? 'mobile-sidebar-open' : ''}`}>
         <div className="sidebar-header">
-          <Link to="/" className="sidebar-brand">
+          <Link to="/" className="sidebar-brand" onClick={() => setMobileSidebarOpen(false)}>
             <CivicLogo size={36} />
             <div className="sidebar-brand-text">
               <span className="sidebar-logo-text">CivicSnap</span>
               <span className="sidebar-logo-sub">Citizen Portal</span>
             </div>
           </Link>
+          <button 
+            type="button" 
+            className="mobile-sidebar-close"
+            onClick={() => setMobileSidebarOpen(false)}
+            aria-label="Close menu drawer"
+          >
+            <X size={20} />
+          </button>
         </div>
 
         {/* User / Guest Status Pill */}
@@ -332,6 +351,7 @@ const Dashboard = () => {
             onClick={() => {
               setActiveTab('feed');
               setAuthorityMode(false);
+              setMobileSidebarOpen(false);
             }}
           >
             <Home size={18} />
@@ -342,7 +362,10 @@ const Dashboard = () => {
             <button 
               type="button"
               className={`nav-item ${activeTab === 'my-reports' ? 'active' : ''}`} 
-              onClick={() => setActiveTab('my-reports')}
+              onClick={() => {
+                setActiveTab('my-reports');
+                setMobileSidebarOpen(false);
+              }}
             >
               <FileText size={18} />
               <span>My Reports</span>
@@ -356,6 +379,7 @@ const Dashboard = () => {
               onClick={() => {
                 setActiveTab('authority');
                 setAuthorityMode(true);
+                setMobileSidebarOpen(false);
               }}
             >
               <Shield size={18} />
@@ -363,7 +387,7 @@ const Dashboard = () => {
             </button>
           )}
 
-          <Link to="/" className="nav-item back-home-nav">
+          <Link to="/" className="nav-item back-home-nav" onClick={() => setMobileSidebarOpen(false)}>
             <ChevronRight size={18} />
             <span>Return to Website</span>
           </Link>
@@ -371,15 +395,16 @@ const Dashboard = () => {
 
         <div className="sidebar-footer">
           {isGuest ? (
-            <Link to="/login" className="btn-sidebar-login">
+            <Link to="/login" className="btn-sidebar-login" onClick={() => setMobileSidebarOpen(false)}>
               <span>Sign In / Register</span>
               <ArrowRight size={15} />
             </Link>
           ) : (
             <button 
-              type="button"
+              type="button" 
               className="nav-item logout" 
               onClick={() => {
+                setMobileSidebarOpen(false);
                 localStorage.removeItem('userId');
                 localStorage.removeItem('userEmail');
                 localStorage.removeItem('userRole');
@@ -395,6 +420,31 @@ const Dashboard = () => {
 
       {/* Main Content Area */}
       <main className="dashboard-main">
+        {/* Mobile Header Bar (Only visible on small screens) */}
+        <div className="mobile-header-bar">
+          <button 
+            type="button" 
+            className="mobile-hamburger-btn" 
+            onClick={() => setMobileSidebarOpen(true)}
+            aria-label="Open sidebar menu"
+          >
+            <Menu size={22} />
+          </button>
+          <Link to="/" className="mobile-header-brand">
+            <CivicLogo size={26} />
+            <span className="mobile-header-title">CivicSnap</span>
+          </Link>
+          <button 
+            type="button" 
+            className="mobile-header-snap-btn"
+            onClick={handleOpenCreateModal}
+            aria-label="New Report"
+          >
+            <Camera size={15} />
+            <span>Snap</span>
+          </button>
+        </div>
+
         {/* Command Header */}
         <header className="dashboard-header">
           <div className="header-search-container">
@@ -781,6 +831,87 @@ const Dashboard = () => {
             )}
           </div>
         </div>
+
+        {/* Mobile Bottom Navigation Bar */}
+        <nav className="mobile-bottom-nav" aria-label="Mobile Navigation">
+          <button 
+            type="button" 
+            className={`mobile-tab-item ${activeTab === 'feed' && !authorityMode ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('feed');
+              setAuthorityMode(false);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          >
+            <Home size={19} />
+            <span>Feed</span>
+          </button>
+
+          {!isGuest && (
+            <button 
+              type="button" 
+              className={`mobile-tab-item ${activeTab === 'my-reports' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('my-reports');
+                setAuthorityMode(false);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
+              <FileText size={19} />
+              <span>My Snaps</span>
+            </button>
+          )}
+
+          {/* Central Raised Camera Snap Button */}
+          <button 
+            type="button" 
+            className="mobile-center-fab"
+            onClick={handleOpenCreateModal}
+            aria-label="Report Issue with Live Camera"
+          >
+            <div className="fab-glow-circle">
+              <Camera size={22} />
+            </div>
+            <span className="fab-title">Snap</span>
+          </button>
+
+          {isAuthorityUser ? (
+            <button 
+              type="button" 
+              className={`mobile-tab-item ${authorityMode ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('authority');
+                setAuthorityMode(true);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
+              <Shield size={19} />
+              <span>Authority</span>
+            </button>
+          ) : (
+            <button 
+              type="button" 
+              className={`mobile-tab-item ${statusFilter === 'Resolved' ? 'active' : ''}`}
+              onClick={() => {
+                setStatusFilter(statusFilter === 'Resolved' ? 'All' : 'Resolved');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
+              <CheckCircle2 size={19} />
+              <span>Resolved</span>
+            </button>
+          )}
+
+          <button 
+            type="button" 
+            className="mobile-tab-item"
+            onClick={() => setMobileSidebarOpen(true)}
+            aria-label="More navigation options"
+          >
+            <Menu size={19} />
+            <span>Menu</span>
+          </button>
+        </nav>
       </main>
 
       {/* Image Zoom Lightbox */}

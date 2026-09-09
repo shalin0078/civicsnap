@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { 
   X, 
   Upload, 
+  Camera,
+  Image as ImageIcon,
   ArrowLeft,
   MapPin, 
   Trash2, 
@@ -83,17 +85,48 @@ const CreateComplaint = ({ onClose, onSubmit, isGuestMode = false, initialCatego
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check max file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      showToast('File size exceeds 5MB limit. Please choose a smaller image.', 'error', 'File Too Large');
+    // Check max file size (15MB raw before compression)
+    if (file.size > 15 * 1024 * 1024) {
+      showToast('File size exceeds 15MB. Please choose a smaller image.', 'error', 'File Too Large');
       return;
     }
 
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result);
-      setFormData((prev) => ({ ...prev, photo_url: reader.result }));
-      showToast('Evidence photograph attached.', 'success', 'Photo Attached');
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.onload = () => {
+        // High quality mobile downscaling (max 1280px) to prevent Android memory crash
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const maxDim = 1280;
+
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        setImagePreview(compressedDataUrl);
+        setFormData((prev) => ({ ...prev, photo_url: compressedDataUrl }));
+        showToast('Evidence photograph attached and ready.', 'success', 'Photo Attached');
+      };
+      img.onerror = () => {
+        // Fallback to direct data URL if canvas fails
+        setImagePreview(event.target.result);
+        setFormData((prev) => ({ ...prev, photo_url: event.target.result }));
+      };
+      img.src = event.target.result;
     };
     reader.readAsDataURL(file);
   };
@@ -223,33 +256,90 @@ const CreateComplaint = ({ onClose, onSubmit, isGuestMode = false, initialCatego
       </header>
       
       <form onSubmit={handleSubmit} className="complaint-form">
-        {/* Photo Upload with Preview */}
+        {/* Photo Upload with Dual Camera / Gallery Options */}
         <div className="form-group image-upload-group">
-          <label className="form-label">Evidence Photograph</label>
+          <div className="label-with-action">
+            <label className="form-label">Evidence Photograph *</label>
+            {imagePreview && (
+              <span className="photo-status-pill">
+                <Check size={12} /> Ready
+              </span>
+            )}
+          </div>
+
           {imagePreview ? (
             <div className="image-preview-box">
               <img src={imagePreview} alt="Evidence preview" className="preview-img" />
-              <button 
-                type="button" 
-                className="btn-remove-preview"
-                onClick={handleRemoveImage}
-              >
-                <X size={16} />
-                Remove Photo
-              </button>
+              <div className="preview-action-bar">
+                <label className="btn-preview-action retake-btn" title="Retake with Camera">
+                  <Camera size={14} />
+                  <span>Retake</span>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    capture="environment" 
+                    className="hidden-input" 
+                    onChange={handleImageChange}
+                  />
+                </label>
+                <label className="btn-preview-action gallery-btn" title="Choose from Gallery">
+                  <ImageIcon size={14} />
+                  <span>Change</span>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden-input" 
+                    onChange={handleImageChange}
+                  />
+                </label>
+                <button 
+                  type="button" 
+                  className="btn-preview-action remove-btn"
+                  onClick={handleRemoveImage}
+                  title="Remove Photo"
+                >
+                  <X size={14} />
+                  <span>Remove</span>
+                </button>
+              </div>
             </div>
           ) : (
-            <label className="image-upload-label">
-              <Upload size={28} className="upload-icon" />
-              <span className="upload-title">Upload Evidence Photo</span>
-              <span className="upload-hint">PNG, JPG, or JPEG up to 5MB</span>
-              <input 
-                type="file" 
-                accept="image/*" 
-                className="hidden-input" 
-                onChange={handleImageChange}
-              />
-            </label>
+            <div className="photo-picker-container">
+              {/* Option 1: Live Android Camera */}
+              <label className="photo-picker-card camera-card" tabIndex={0}>
+                <div className="photo-picker-icon-circle camera-circle">
+                  <Camera size={26} />
+                </div>
+                <div className="photo-picker-info">
+                  <span className="photo-picker-title">Take Live Photo</span>
+                  <span className="photo-picker-sub">Opens phone camera directly</span>
+                </div>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  capture="environment" 
+                  className="hidden-input" 
+                  onChange={handleImageChange}
+                />
+              </label>
+
+              {/* Option 2: Choose from Gallery */}
+              <label className="photo-picker-card gallery-card" tabIndex={0}>
+                <div className="photo-picker-icon-circle gallery-circle">
+                  <ImageIcon size={26} />
+                </div>
+                <div className="photo-picker-info">
+                  <span className="photo-picker-title">Choose from Gallery</span>
+                  <span className="photo-picker-sub">Select photo or files</span>
+                </div>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden-input" 
+                  onChange={handleImageChange}
+                />
+              </label>
+            </div>
           )}
         </div>
 

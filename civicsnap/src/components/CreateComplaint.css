@@ -226,49 +226,114 @@
   box-shadow: 0 0 0 3px rgba(187, 134, 252, 0.15);
 }
 
-/* Image Upload & Preview */
-.image-upload-label {
+/* Image Upload & Dual Camera / Gallery Options */
+.photo-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.photo-picker-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.photo-picker-card {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 125px;
-  border: 2px dashed rgba(187, 134, 252, 0.35);
+  text-align: center;
+  padding: 16px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1.5px dashed rgba(255, 255, 255, 0.14);
   border-radius: 12px;
-  background: rgba(124, 77, 255, 0.05);
   cursor: pointer;
-  transition: all 0.2s;
-  color: #a0a0b8;
-  gap: 6px;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  user-select: none;
+  min-height: 110px;
 }
 
-.image-upload-label:hover {
-  border-color: #bb86fc;
-  background: rgba(124, 77, 255, 0.1);
+.photo-picker-card:hover {
+  transform: translateY(-2px);
+}
+
+.camera-card {
+  border-color: rgba(168, 85, 247, 0.35);
+  background: linear-gradient(145deg, rgba(168, 85, 247, 0.08), rgba(255, 255, 255, 0.02));
+}
+
+.camera-card:hover {
+  border-color: #a855f7;
+  background: linear-gradient(145deg, rgba(168, 85, 247, 0.16), rgba(255, 255, 255, 0.04));
+  box-shadow: 0 6px 20px rgba(168, 85, 247, 0.2);
+}
+
+.gallery-card {
+  border-color: rgba(59, 130, 246, 0.35);
+  background: linear-gradient(145deg, rgba(59, 130, 246, 0.08), rgba(255, 255, 255, 0.02));
+}
+
+.gallery-card:hover {
+  border-color: #3b82f6;
+  background: linear-gradient(145deg, rgba(59, 130, 246, 0.16), rgba(255, 255, 255, 0.04));
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.2);
+}
+
+.photo-picker-icon-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  transition: transform 0.2s;
+}
+
+.camera-circle {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+}
+
+.gallery-circle {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+}
+
+.photo-picker-card:hover .photo-picker-icon-circle {
+  transform: scale(1.08);
+}
+
+.photo-picker-title {
+  font-size: 0.88rem;
+  font-weight: 700;
   color: #fff;
+  line-height: 1.2;
 }
 
-.upload-icon {
-  color: #bb86fc;
-}
-
-.upload-title {
-  font-size: 0.92rem;
-  font-weight: 600;
-}
-
-.upload-hint {
-  font-size: 0.75rem;
-  color: #707080;
+.photo-picker-sub {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-top: 3px;
 }
 
 .image-preview-box {
   position: relative;
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  max-height: 180px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  max-height: 200px;
   background: #000;
   display: flex;
   align-items: center;
@@ -277,31 +342,68 @@
 
 .preview-img {
   width: 100%;
-  max-height: 180px;
+  max-height: 200px;
   object-fit: cover;
+  display: block;
 }
 
-.btn-remove-preview {
+.preview-action-bar {
   position: absolute;
-  top: 10px;
+  bottom: 10px;
+  left: 10px;
   right: 10px;
-  background: rgba(0, 0, 0, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
-  border-radius: 6px;
-  padding: 4px 10px;
-  font-size: 0.78rem;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  z-index: 5;
+}
+
+.btn-preview-action {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
   cursor: pointer;
-  backdrop-filter: blur(4px);
-  transition: background 0.2s;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.2s;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  user-select: none;
 }
 
-.btn-remove-preview:hover {
-  background: rgba(220, 38, 38, 0.8);
+.retake-btn {
+  background: rgba(124, 77, 255, 0.85);
+  color: #fff;
+}
+
+.retake-btn:hover {
+  background: rgba(124, 77, 255, 1);
+  transform: translateY(-1px);
+}
+
+.gallery-btn {
+  background: rgba(30, 41, 59, 0.85);
+  color: #93c5fd;
+}
+
+.gallery-btn:hover {
+  background: rgba(30, 41, 59, 1);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.remove-btn {
+  background: rgba(220, 38, 38, 0.85);
+  color: #fff;
+}
+
+.remove-btn:hover {
+  background: rgba(220, 38, 38, 1);
+  transform: translateY(-1px);
 }
 
 .hidden-input {
@@ -407,12 +509,91 @@
   width: 100%;
 }
 
-@media (max-width: 540px) {
+@media (max-width: 640px) {
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-content {
+    border-radius: 22px 22px 0 0;
+    max-width: 100%;
+    max-height: 92vh;
+    animation: modalSlideUpMobile 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes modalSlideUpMobile {
+    from {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .mobile-header {
+    padding: 16px 18px;
+  }
+
+  .header-title {
+    font-size: 1.15rem;
+  }
+
+  .complaint-form {
+    padding: 18px 16px 32px;
+  }
+
   .priority-chips {
     grid-template-columns: repeat(2, 1fr);
   }
 
   .guest-inputs-grid {
     grid-template-columns: 1fr;
+  }
+
+  .btn-submit {
+    padding: 15px;
+    font-size: 1rem;
+  }
+
+  .photo-picker-card {
+    padding: 14px 10px;
+    min-height: 100px;
+  }
+
+  .photo-picker-icon-circle {
+    width: 38px;
+    height: 38px;
+    margin-bottom: 6px;
+  }
+
+  .photo-picker-title {
+    font-size: 0.82rem;
+  }
+
+  .photo-picker-sub {
+    font-size: 0.68rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .photo-picker-container {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .photo-picker-card {
+    flex-direction: row;
+    gap: 12px;
+    text-align: left;
+    padding: 12px 14px;
+    min-height: auto;
+  }
+
+  .photo-picker-icon-circle {
+    margin-bottom: 0;
+    flex-shrink: 0;
   }
 }
