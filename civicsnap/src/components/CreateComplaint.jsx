@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { 
   X, 
   Upload, 
@@ -47,7 +47,73 @@ const CreateComplaint = ({ onClose, onSubmit, isGuestMode = false, initialCatego
   const [locationSuccess, setLocationSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+  const [showLiveStream, setShowLiveStream] = useState(false);
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
   const { showToast } = useToast();
+
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
+
+  const handleCloseModal = () => {
+    stopLiveCamera();
+    onClose();
+  };
+
+  const startLiveCamera = async () => {
+    try {
+      setShowLiveStream(true);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (err) {
+      console.warn('Could not start live stream:', err);
+      setShowLiveStream(false);
+      showToast('Live camera feed unavailable or blocked. Please tap "Open Phone Camera" instead.', 'info', 'Camera Stream');
+    }
+  };
+
+  const stopLiveCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    setShowLiveStream(false);
+  };
+
+  const captureLiveFrame = () => {
+    if (!videoRef.current) return;
+    try {
+      const video = videoRef.current;
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 1280;
+      canvas.height = video.videoHeight || 720;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      setImagePreview(dataUrl);
+      setFormData((prev) => ({ ...prev, photo_url: dataUrl }));
+      stopLiveCamera();
+      showToast('Evidence photograph captured!', 'success', 'Photo Attached');
+    } catch (e) {
+      console.error('Capture frame error:', e);
+      stopLiveCamera();
+    }
+  };
 
   const [formData, setFormData] = useState({
     title: initialCategory || '',
@@ -209,7 +275,7 @@ const CreateComplaint = ({ onClose, onSubmit, isGuestMode = false, initialCatego
     <div className="category-selection">
       <header className="mobile-header">
         <div className="header-top">
-          <button className="icon-btn" onClick={onClose} aria-label="Close modal">
+          <button className="icon-btn" onClick={handleCloseModal} aria-label="Close modal">
             <X size={22} />
           </button>
           <h2 className="header-title">Select Issue Category</h2>
@@ -256,7 +322,7 @@ const CreateComplaint = ({ onClose, onSubmit, isGuestMode = false, initialCatego
       </header>
       
       <form onSubmit={handleSubmit} className="complaint-form">
-        {/* Photo Upload with Dual Camera / Gallery Options */}
+        {/* Photo Upload with Guaranteed Android Camera, In-App Live Stream & Gallery Pickers */}
         <div className="form-group image-upload-group">
           <div className="label-with-action">
             <label className="form-label">Evidence Photograph *</label>
@@ -267,7 +333,38 @@ const CreateComplaint = ({ onClose, onSubmit, isGuestMode = false, initialCatego
             )}
           </div>
 
-          {imagePreview ? (
+          {showLiveStream ? (
+            <div className="live-camera-viewfinder-card">
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline 
+                muted 
+                className="live-camera-video-element" 
+              />
+              <div className="live-camera-controls-bar">
+                <button 
+                  type="button" 
+                  className="btn-viewfinder-cancel" 
+                  onClick={stopLiveCamera}
+                >
+                  <X size={16} />
+                  <span>Cancel</span>
+                </button>
+
+                <button 
+                  type="button" 
+                  className="btn-viewfinder-shutter" 
+                  onClick={captureLiveFrame}
+                  aria-label="Capture photo frame"
+                >
+                  <div className="shutter-inner-ring"></div>
+                </button>
+
+                <div style={{ width: 68 }}></div>
+              </div>
+            </div>
+          ) : imagePreview ? (
             <div className="image-preview-box">
               <img src={imagePreview} alt="Evidence preview" className="preview-img" />
               <div className="preview-action-bar">
@@ -278,7 +375,7 @@ const CreateComplaint = ({ onClose, onSubmit, isGuestMode = false, initialCatego
                     type="file" 
                     accept="image/*" 
                     capture="environment" 
-                    className="hidden-input" 
+                    className="file-input-overlay" 
                     onChange={handleImageChange}
                   />
                 </label>
@@ -288,7 +385,7 @@ const CreateComplaint = ({ onClose, onSubmit, isGuestMode = false, initialCatego
                   <input 
                     type="file" 
                     accept="image/*" 
-                    className="hidden-input" 
+                    className="file-input-overlay" 
                     onChange={handleImageChange}
                   />
                 </label>
@@ -304,41 +401,57 @@ const CreateComplaint = ({ onClose, onSubmit, isGuestMode = false, initialCatego
               </div>
             </div>
           ) : (
-            <div className="photo-picker-container">
-              {/* Option 1: Live Android Camera */}
-              <label className="photo-picker-card camera-card" tabIndex={0}>
-                <div className="photo-picker-icon-circle camera-circle">
-                  <Camera size={26} />
+            <div className="photo-picker-wrapper">
+              <div className="photo-picker-container">
+                {/* Option 1: Live Android Camera (Direct touch on rendered input overlay) */}
+                <div className="photo-picker-card camera-card" tabIndex={0}>
+                  <div className="photo-picker-icon-circle camera-circle">
+                    <Camera size={26} />
+                  </div>
+                  <div className="photo-picker-info">
+                    <span className="photo-picker-title">Take Live Photo</span>
+                    <span className="photo-picker-sub">Opens phone camera directly</span>
+                  </div>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    capture="environment" 
+                    className="file-input-overlay" 
+                    onChange={handleImageChange}
+                    title="Tap to snap with phone camera"
+                    aria-label="Take live photo with camera"
+                  />
                 </div>
-                <div className="photo-picker-info">
-                  <span className="photo-picker-title">Take Live Photo</span>
-                  <span className="photo-picker-sub">Opens phone camera directly</span>
-                </div>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  capture="environment" 
-                  className="hidden-input" 
-                  onChange={handleImageChange}
-                />
-              </label>
 
-              {/* Option 2: Choose from Gallery */}
-              <label className="photo-picker-card gallery-card" tabIndex={0}>
-                <div className="photo-picker-icon-circle gallery-circle">
-                  <ImageIcon size={26} />
+                {/* Option 2: Choose from Gallery / Storage */}
+                <div className="photo-picker-card gallery-card" tabIndex={0}>
+                  <div className="photo-picker-icon-circle gallery-circle">
+                    <ImageIcon size={26} />
+                  </div>
+                  <div className="photo-picker-info">
+                    <span className="photo-picker-title">Choose from Gallery</span>
+                    <span className="photo-picker-sub">Pick from files / photos</span>
+                  </div>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="file-input-overlay" 
+                    onChange={handleImageChange}
+                    title="Tap to choose photo from gallery"
+                    aria-label="Upload photo from device gallery"
+                  />
                 </div>
-                <div className="photo-picker-info">
-                  <span className="photo-picker-title">Choose from Gallery</span>
-                  <span className="photo-picker-sub">Select photo or files</span>
-                </div>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  className="hidden-input" 
-                  onChange={handleImageChange}
-                />
-              </label>
+              </div>
+
+              {/* Option 3: In-Browser Live Viewfinder Option */}
+              <button 
+                type="button" 
+                className="btn-inapp-viewfinder"
+                onClick={startLiveCamera}
+              >
+                <Camera size={14} />
+                <span>Or open Live Viewfinder right on this screen</span>
+              </button>
             </div>
           )}
         </div>

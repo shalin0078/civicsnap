@@ -406,6 +406,133 @@
   transform: translateY(-1px);
 }
 
+/* Direct Touch Overlay for Android Native Camera & Gallery */
+.photo-picker-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-preview-action {
+  position: relative;
+  overflow: hidden;
+}
+
+.file-input-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.001; /* Rendered in layout compositing tree so Android native camera touch event is recognized */
+  cursor: pointer;
+  z-index: 10;
+  margin: 0;
+  padding: 0;
+  border: none;
+  font-size: 0;
+  -webkit-appearance: none;
+}
+
+/* In-App Live Camera Viewfinder */
+.photo-picker-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-inapp-viewfinder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(168, 85, 247, 0.12);
+  border: 1px dashed rgba(168, 85, 247, 0.4);
+  border-radius: 10px;
+  color: #c084fc;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-inapp-viewfinder:hover {
+  background: rgba(168, 85, 247, 0.22);
+  border-color: #a855f7;
+  color: #fff;
+}
+
+.live-camera-viewfinder-card {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #000;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+  min-height: 240px;
+}
+
+.live-camera-video-element {
+  width: 100%;
+  height: 240px;
+  object-fit: cover;
+  display: block;
+}
+
+.live-camera-controls-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 18px;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.85), transparent);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 10;
+}
+
+.btn-viewfinder-cancel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-viewfinder-shutter {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+  transition: transform 0.15s;
+}
+
+.btn-viewfinder-shutter:active {
+  transform: scale(0.92);
+}
+
+.shutter-inner-ring {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid #111;
+  background: #f43f5e;
+}
+
 .hidden-input {
   display: none !important;
 }
