@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "dev": "npm --prefix civicsnap run dev",
+    "server": "npm --prefix civicsnap/backend start",
     "build": "npm --prefix civicsnap install && npm --prefix civicsnap run build",
     "start": "npm --prefix civicsnap run preview"
   }

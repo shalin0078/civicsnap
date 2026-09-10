@@ -166,6 +166,24 @@ module.exports = {
     saveDb();
     return db.complaints[index];
   },
+  deleteComplaint(id) {
+    const db = loadDb();
+    const index = db.complaints.findIndex(c => String(c._id) === String(id) || String(c.id) === String(id));
+    if (index === -1) return false;
+    const removed = db.complaints.splice(index, 1)[0];
+    saveDb();
+    return removed;
+  },
+  removePhoto(id) {
+    const db = loadDb();
+    const index = db.complaints.findIndex(c => String(c._id) === String(id) || String(c.id) === String(id));
+    if (index === -1) return null;
+    db.complaints[index].photo_url = '';
+    db.complaints[index].photo_removed = true;
+    db.complaints[index].updated_at = new Date();
+    saveDb();
+    return db.complaints[index];
+  },
   getUsers() {
     return loadDb().users;
   },

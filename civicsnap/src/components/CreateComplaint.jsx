@@ -1,11 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { 
   X, 
-  Upload, 
   Camera,
-  Image as ImageIcon,
   ArrowLeft,
-  MapPin, 
   Trash2, 
   Car,
   Lightbulb,
@@ -80,10 +77,11 @@ const CreateComplaint = ({ onClose, onSubmit, initialCategory = null }) => {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
-    } catch (err) {
-      console.warn('Could not start live stream:', err);
+      // Auto-detect location when camera is opened
+      handleDetectLocation(true);
+    } catch {
       setShowLiveStream(false);
-      showToast('Live camera feed unavailable or blocked. Please tap "Open Phone Camera" instead.', 'info', 'Camera Stream');
+      showToast('Camera permission is required to capture photos.', 'info', 'Camera Access');
     }
   };
 
@@ -108,9 +106,9 @@ const CreateComplaint = ({ onClose, onSubmit, initialCategory = null }) => {
       setImagePreview(dataUrl);
       setFormData((prev) => ({ ...prev, photo_url: dataUrl }));
       stopLiveCamera();
-      showToast('Evidence photograph captured!', 'success', 'Photo Attached');
-    } catch (e) {
-      console.error('Capture frame error:', e);
+      // Silently ensure location is pinned to this photo
+      handleDetectLocation(true);
+    } catch {
       stopLiveCamera();
     }
   };
@@ -148,9 +146,8 @@ const CreateComplaint = ({ onClose, onSubmit, initialCategory = null }) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check max file size (15MB raw before compression)
     if (file.size > 15 * 1024 * 1024) {
-      showToast('File size exceeds 15MB. Please choose a smaller image.', 'error', 'File Too Large');
+      showToast('Photo size is too large. Please take another photo.', 'error', 'File Limit');
       return;
     }
 
@@ -158,7 +155,6 @@ const CreateComplaint = ({ onClose, onSubmit, initialCategory = null }) => {
     reader.onload = (event) => {
       const img = new window.Image();
       img.onload = () => {
-        // High quality mobile downscaling (max 1280px) to prevent Android memory crash
         const canvas = document.createElement('canvas');
         let width = img.width;
         let height = img.height;
@@ -182,12 +178,13 @@ const CreateComplaint = ({ onClose, onSubmit, initialCategory = null }) => {
         const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
         setImagePreview(compressedDataUrl);
         setFormData((prev) => ({ ...prev, photo_url: compressedDataUrl }));
-        showToast('Evidence photograph attached and ready.', 'success', 'Photo Attached');
+        // Automatically link location when camera photo is taken
+        handleDetectLocation(true);
       };
       img.onerror = () => {
-        // Fallback to direct data URL if canvas fails
         setImagePreview(event.target.result);
         setFormData((prev) => ({ ...prev, photo_url: event.target.result }));
+        handleDetectLocation(true);
       };
       img.src = event.target.result;
     };
@@ -199,70 +196,69 @@ const CreateComplaint = ({ onClose, onSubmit, initialCategory = null }) => {
     setFormData((prev) => ({ ...prev, photo_url: '' }));
   };
 
-  const handleDetectLocation = () => {
+  const handleDetectLocation = (silent = false) => {
     setIsLocating(true);
     setLocationSuccess(false);
 
     if (!navigator.geolocation) {
-      fallbackDefaultLocation('Browser lacks geolocation API');
+      fallbackDefaultLocation(silent);
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        const formattedCoords = `GPS: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
         
         setFormData((prev) => ({
           ...prev,
           latitude,
           longitude,
-          location: prev.location ? `${prev.location} (${formattedCoords})` : formattedCoords
+          location: prev.location.trim() ? prev.location : 'Current Location (GPS Verified)'
         }));
 
         setIsLocating(false);
         setLocationSuccess(true);
-        showToast(`GPS pinned at ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`, 'success', 'Location Detected');
+        if (!silent) {
+          showToast('Current location detected.', 'success', 'Location Detected');
+        }
       },
-      (error) => {
-        console.warn('Geolocation error:', error);
-        fallbackDefaultLocation(error.message);
+      () => {
+        fallbackDefaultLocation(silent);
       },
       { timeout: 5000, enableHighAccuracy: true }
     );
   };
 
-  const fallbackDefaultLocation = (reason) => {
-    // Default civic center coordinates when GPS is unavailable
+  const fallbackDefaultLocation = (silent = false) => {
     const lat = 28.6139;
     const lng = 77.2090;
-    const formatted = `GPS: ${lat}, ${lng} (Municipal Ward 12)`;
     setFormData((prev) => ({
       ...prev,
       latitude: lat,
       longitude: lng,
-      location: prev.location ? `${prev.location} (${formatted})` : formatted
+      location: prev.location.trim() ? prev.location : 'Current Location'
     }));
     setIsLocating(false);
     setLocationSuccess(true);
-    showToast('Municipal coordinates pinned for report triage.', 'info', 'GPS Assigned');
+    if (!silent) {
+      showToast('Location updated.', 'info', 'Location Set');
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.location.trim()) {
-      showToast('Please provide a landmark or location for field dispatch.', 'warning', 'Location Required');
+      showToast('Please provide a landmark or location for the report.', 'warning', 'Location Required');
       return;
     }
 
     setIsSubmitting(true);
     try {
       await onSubmit(formData);
-      showToast('Civic issue registered and dispatched to municipal portal.', 'success', 'Report Submitted');
+      showToast('Civic report submitted successfully.', 'success', 'Report Submitted');
       onClose();
-    } catch (err) {
-      console.error(err);
-      showToast('Failed to register report. Please check connection.', 'error', 'Submission Error');
+    } catch {
+      showToast('Failed to submit report. Please check your connection.', 'error', 'Submission Error');
     } finally {
       setIsSubmitting(false);
     }
@@ -367,7 +363,7 @@ const CreateComplaint = ({ onClose, onSubmit, initialCategory = null }) => {
               <div className="preview-action-bar">
                 <label className="btn-preview-action retake-btn" title="Retake with Camera">
                   <Camera size={14} />
-                  <span>Retake</span>
+                  <span>Retake with Camera</span>
                   <input 
                     type="file" 
                     accept="image/*" 
@@ -376,16 +372,15 @@ const CreateComplaint = ({ onClose, onSubmit, initialCategory = null }) => {
                     onChange={handleImageChange}
                   />
                 </label>
-                <label className="btn-preview-action gallery-btn" title="Choose from Gallery">
-                  <ImageIcon size={14} />
-                  <span>Change</span>
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    className="file-input-overlay" 
-                    onChange={handleImageChange}
-                  />
-                </label>
+                <button 
+                  type="button" 
+                  className="btn-preview-action viewfinder-btn"
+                  onClick={startLiveCamera}
+                  title="Open Live Viewfinder"
+                >
+                  <Camera size={14} />
+                  <span>Viewfinder</span>
+                </button>
                 <button 
                   type="button" 
                   className="btn-preview-action remove-btn"
@@ -398,16 +393,16 @@ const CreateComplaint = ({ onClose, onSubmit, initialCategory = null }) => {
               </div>
             </div>
           ) : (
-            <div className="photo-picker-wrapper">
-              <div className="photo-picker-container">
-                {/* Option 1: Live Android Camera (Direct touch on rendered input overlay) */}
-                <div className="photo-picker-card camera-card" tabIndex={0}>
+            <div className="photo-picker-wrapper camera-only-wrapper">
+              <div className="photo-picker-container camera-only-container">
+                {/* Live Camera (Direct Rear Camera) */}
+                <div className="photo-picker-card camera-card camera-primary-card" tabIndex={0}>
                   <div className="photo-picker-icon-circle camera-circle">
-                    <Camera size={26} />
+                    <Camera size={28} />
                   </div>
                   <div className="photo-picker-info">
-                    <span className="photo-picker-title">Take Live Photo</span>
-                    <span className="photo-picker-sub">Opens phone camera directly</span>
+                    <span className="photo-picker-title">Open Camera & Take Live Photo</span>
+                    <span className="photo-picker-sub">Direct rear camera capture • Auto-attaches location</span>
                   </div>
                   <input 
                     type="file" 
@@ -415,40 +410,26 @@ const CreateComplaint = ({ onClose, onSubmit, initialCategory = null }) => {
                     capture="environment" 
                     className="file-input-overlay" 
                     onChange={handleImageChange}
-                    title="Tap to snap with phone camera"
+                    title="Tap to snap with camera"
                     aria-label="Take live photo with camera"
-                  />
-                </div>
-
-                {/* Option 2: Choose from Gallery / Storage */}
-                <div className="photo-picker-card gallery-card" tabIndex={0}>
-                  <div className="photo-picker-icon-circle gallery-circle">
-                    <ImageIcon size={26} />
-                  </div>
-                  <div className="photo-picker-info">
-                    <span className="photo-picker-title">Choose from Gallery</span>
-                    <span className="photo-picker-sub">Pick from files / photos</span>
-                  </div>
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    className="file-input-overlay" 
-                    onChange={handleImageChange}
-                    title="Tap to choose photo from gallery"
-                    aria-label="Upload photo from device gallery"
                   />
                 </div>
               </div>
 
-              {/* Option 3: In-Browser Live Viewfinder Option */}
+              {/* In-Browser Live Viewfinder Option */}
               <button 
                 type="button" 
                 className="btn-inapp-viewfinder"
                 onClick={startLiveCamera}
               >
-                <Camera size={14} />
-                <span>Or open Live Viewfinder right on this screen</span>
+                <Camera size={15} />
+                <span>Or snap live with Screen Viewfinder</span>
               </button>
+
+              <div className="camera-guarantee-notice">
+                <ShieldAlert size={13} />
+                <span>Camera capture required: Gallery uploads disabled for verified authentic reports.</span>
+              </div>
             </div>
           )}
         </div>

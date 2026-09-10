@@ -126,4 +126,68 @@ router.patch('/:id/upvote', async (req, res) => {
     return res.status(404).json({ message: 'Complaint not found' });
 });
 
+// Remove / clear spam photo (Admin / Authority action)
+router.patch('/:id/photo', async (req, res) => {
+    const { id } = req.params;
+    if (mongoose.connection.readyState === 1) {
+        try {
+            const updated = await Complaint.findByIdAndUpdate(
+                id,
+                { photo_url: '', photo_removed: true },
+                { new: true }
+            );
+            if (updated) return res.json(updated);
+        } catch (err) {
+            // Fallback to dataStore
+        }
+    }
+
+    const updated = dataStore.removePhoto(id);
+    if (updated) {
+        return res.json(updated);
+    }
+    return res.status(404).json({ message: 'Complaint not found' });
+});
+
+router.delete('/:id/photo', async (req, res) => {
+    const { id } = req.params;
+    if (mongoose.connection.readyState === 1) {
+        try {
+            const updated = await Complaint.findByIdAndUpdate(
+                id,
+                { photo_url: '', photo_removed: true },
+                { new: true }
+            );
+            if (updated) return res.json(updated);
+        } catch (err) {
+            // Fallback to dataStore
+        }
+    }
+
+    const updated = dataStore.removePhoto(id);
+    if (updated) {
+        return res.json(updated);
+    }
+    return res.status(404).json({ message: 'Complaint not found' });
+});
+
+// Delete entire complaint record (Admin / Authority action)
+router.delete('/:id', async (req, res) => {
+    const { id } = req.params;
+    if (mongoose.connection.readyState === 1) {
+        try {
+            const deleted = await Complaint.findByIdAndDelete(id);
+            if (deleted) return res.json({ success: true, message: 'Complaint deleted', id });
+        } catch (err) {
+            // Fallback to dataStore
+        }
+    }
+
+    const deleted = dataStore.deleteComplaint(id);
+    if (deleted) {
+        return res.json({ success: true, message: 'Complaint deleted', id });
+    }
+    return res.status(404).json({ message: 'Complaint not found' });
+});
+
 module.exports = router;

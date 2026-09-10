@@ -577,6 +577,27 @@
   gap: 10px;
 }
 
+.card-top-bar.clean-meta-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.admin-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(124, 77, 255, 0.15));
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  color: #c084fc;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.15);
+}
+
 .badge-cluster {
   display: flex;
   align-items: center;
@@ -725,6 +746,44 @@
   align-items: center;
   justify-content: center;
   backdrop-filter: blur(4px);
+}
+
+.btn-photo-moderation-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: rgba(239, 68, 68, 0.88);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  padding: 3px 6px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  z-index: 5;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s;
+}
+
+.btn-photo-moderation-badge:hover {
+  background: #dc2626;
+  transform: scale(1.05);
+}
+
+.photo-moderated-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px dashed rgba(239, 68, 68, 0.3);
+  border-radius: 10px;
+  color: #fca5a5;
+  font-size: 0.8rem;
+  margin-top: 4px;
 }
 
 /* 4-Stage Resolution Pipeline */
@@ -1093,6 +1152,30 @@
   color: #fff;
   font-weight: 700;
   box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+}
+
+/* 5. Remove Spam Photo */
+.btn-authority-chip.remove-photo {
+  background: rgba(249, 115, 22, 0.15);
+  border-color: rgba(249, 115, 22, 0.35);
+  color: #fb923c;
+}
+.btn-authority-chip.remove-photo:hover:not(:disabled) {
+  background: rgba(249, 115, 22, 0.28);
+  color: #fff;
+  border-color: #f97316;
+}
+
+/* 6. Delete Spam Report */
+.btn-authority-chip.delete-report {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #f87171;
+}
+.btn-authority-chip.delete-report:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.28);
+  color: #fff;
+  border-color: #ef4444;
 }
 
 /* Image Lightbox */

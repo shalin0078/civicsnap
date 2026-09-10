@@ -28,7 +28,10 @@ import {
   LayoutGrid,
   List,
   RotateCcw,
-  Menu
+  Menu,
+  Trash2,
+  ImageOff,
+  ShieldAlert
 } from 'lucide-react';
 import CreateComplaint from '../components/CreateComplaint';
 import CivicLogo from '../components/CivicLogo';
@@ -64,10 +67,11 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const userId = localStorage.getItem('userId');
   const userRole = localStorage.getItem('userRole');
-  const isAuthorityUser = Boolean(userRole === 'authority' || (userId && userId.includes('admin')));
-
-  // Authority mode defaults to active for authority users
-  const [authorityMode, setAuthorityMode] = useState(isAuthorityUser);
+  const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase();
+  
+  // Only the unique admin ID and password can unlock the Admin Dashboard
+  const isAuthorityUser = Boolean(userRole === 'authority' && userEmail === 'admin@civicsnap.com');
+  const authorityMode = isAuthorityUser;
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
 
   const getComplaintId = (c) => String(c?.id || c?._id || '');
@@ -252,6 +256,48 @@ const Dashboard = () => {
     }
   };
 
+  const handleRemoveSpamPhoto = async (complaintId) => {
+    if (!complaintId) return;
+    const confirmed = window.confirm('Are you sure you want to remove this photo as spam or inappropriate content?');
+    if (!confirmed) return;
+
+    setComplaints((prev) =>
+      prev.map((c) => (isMatch(c, complaintId) ? { ...c, photo_url: '', photo_removed: true } : c))
+    );
+
+    showToast('Spam photo removed by authority.', 'info', 'Photo Removed');
+
+    try {
+      await civicDataService.removeComplaintPhoto(complaintId);
+    } catch {
+      // Local fallback handled
+    }
+  };
+
+  const handleDeleteSpamComplaint = async (complaintId) => {
+    if (!complaintId) return;
+    const confirmed = window.confirm('Are you sure you want to permanently remove this report from the civic registry as spam or false submission?');
+    if (!confirmed) return;
+
+    setComplaints((prev) => prev.filter((c) => !isMatch(c, complaintId)));
+
+    showToast('Report removed from civic registry.', 'info', 'Report Deleted');
+
+    try {
+      await civicDataService.deleteComplaint(complaintId);
+    } catch {
+      // Local fallback handled
+    }
+  };
+
+  const cleanLocation = (loc) => {
+    if (!loc) return 'Location Pinpoint';
+    const cleaned = loc
+      .replace(/\(?GPS:\s*[\d.-]+,\s*[\d.-]+(\s*\([^)]*\))?\)?/gi, '')
+      .trim();
+    return cleaned || 'GPS-Verified Location';
+  };
+
   const handleExportCSV = () => {
     if (filteredComplaints.length === 0) {
       showToast('No civic reports available to export with current filters.', 'warning', 'Export Empty');
@@ -308,15 +354,6 @@ const Dashboard = () => {
     if (!dateString) return 'Just now';
     const options = { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
     return new Date(dateString).toLocaleDateString(undefined, options);
-  };
-
-  const getPriorityClass = (priority) => {
-    switch (priority?.toLowerCase()) {
-      case 'emergency': return 'priority-emergency';
-      case 'high': return 'priority-high';
-      case 'low': return 'priority-low';
-      default: return 'priority-medium';
-    }
   };
 
   const getStageIndex = (status) => {
@@ -525,14 +562,10 @@ const Dashboard = () => {
 
           <div className="header-actions">
             {isAuthorityUser && (
-              <button
-                type="button"
-                className={`authority-toggle-btn ${authorityMode ? 'active' : ''}`}
-                onClick={() => setAuthorityMode(!authorityMode)}
-              >
+              <div className="admin-status-badge">
                 <Shield size={16} />
-                <span>{authorityMode ? 'Authority Mode Active' : 'Switch to Authority View'}</span>
-              </button>
+                <span>Admin Dashboard</span>
+              </div>
             )}
 
             <button type="button" className="create-btn interactive-hover" onClick={handleOpenCreateModal}>
@@ -723,24 +756,11 @@ const Dashboard = () => {
                   const cId = getComplaintId(complaint);
                   const currentStageIdx = getStageIndex(complaint.status);
                   const isUpvoted = userUpvotes[cId];
-                  const trackingId = `CS-${cId.slice(-4).toUpperCase()}`;
 
                   return (
                     <article key={cId} className="complaint-card-modern">
-                      {/* Top Meta Bar */}
-                      <div className="card-top-bar">
-                        <div className="badge-cluster">
-                          <span className="tracking-id-badge" title="Public Tracking ID">
-                            {trackingId}
-                          </span>
-                          <span className="category-pill">
-                            <AlertTriangle size={13} />
-                            {complaint.category}
-                          </span>
-                          <span className={`severity-chip ${getPriorityClass(complaint.priority)}`}>
-                            {complaint.priority || 'Medium'} Urgency
-                          </span>
-                        </div>
+                      {/* Top Meta Bar - Clean Minimalist */}
+                      <div className="card-top-bar clean-meta-bar">
                         <div className="card-timestamp">
                           <Clock size={12} />
                           <span>{formatDate(complaint.created_at)}</span>
@@ -755,7 +775,7 @@ const Dashboard = () => {
                           
                           <div className="card-landmark">
                             <MapPin size={14} className="landmark-icon" />
-                            <span>{complaint.location}</span>
+                            <span>{cleanLocation(complaint.location)}</span>
                           </div>
 
                           <div className="card-reporter-row">
@@ -764,18 +784,37 @@ const Dashboard = () => {
                         </div>
 
                         {/* Evidence Photo */}
-                        {complaint.photo_url && (
+                        {complaint.photo_url ? (
                           <div 
                             className="card-photo-wrapper"
                             onClick={() => setExpandedImage(complaint.photo_url)}
                             title="Click to view full photograph"
                           >
                             <img src={complaint.photo_url} alt="Civic hazard evidence" className="card-photo" />
+                            {(authorityMode || isAuthorityUser) && (
+                              <button
+                                type="button"
+                                className="btn-photo-moderation-badge"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveSpamPhoto(cId);
+                                }}
+                                title="Admin: Remove spam photo"
+                              >
+                                <ImageOff size={11} />
+                                <span>Spam Photo</span>
+                              </button>
+                            )}
                             <div className="photo-zoom-hint">
                               <Maximize2 size={14} />
                             </div>
                           </div>
-                        )}
+                        ) : complaint.photo_removed ? (
+                          <div className="photo-moderated-notice">
+                            <ShieldAlert size={14} />
+                            <span>Photo removed by admin (spam/inappropriate)</span>
+                          </div>
+                        ) : null}
                       </div>
 
                       {/* 4-Stage Resolution Pipeline Tracker */}
@@ -905,6 +944,30 @@ const Dashboard = () => {
                               >
                                 <CheckCircle2 size={13} />
                                 <span>{complaint.status === 'Resolved' ? 'Edit Resolution ✓' : 'Mark Resolved'}</span>
+                              </button>
+
+                              {/* 5. Remove Spam Photo (if photo exists) */}
+                              {complaint.photo_url && (
+                                <button
+                                  type="button"
+                                  className="btn-authority-chip remove-photo"
+                                  onClick={() => handleRemoveSpamPhoto(cId)}
+                                  title="Remove spam or inappropriate photo"
+                                >
+                                  <ImageOff size={13} />
+                                  <span>Remove Photo</span>
+                                </button>
+                              )}
+
+                              {/* 6. Delete Spam / False Report */}
+                              <button
+                                type="button"
+                                className="btn-authority-chip delete-report"
+                                onClick={() => handleDeleteSpamComplaint(cId)}
+                                title="Delete spam or false report"
+                              >
+                                <Trash2 size={13} />
+                                <span>Delete Report</span>
                               </button>
                             </div>
                           </div>

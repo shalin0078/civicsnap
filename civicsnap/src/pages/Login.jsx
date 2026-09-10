@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Mail, Lock, ArrowRight, Shield, User, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, ArrowRight, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import CivicLogo from '../components/CivicLogo';
 import { useToast } from '../components/Toast';
@@ -9,7 +9,6 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedRole, setSelectedRole] = useState('citizen'); // 'citizen' or 'authority'
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -18,34 +17,52 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
 
+    const cleanEmail = email.trim().toLowerCase();
+
     try {
       const apiBase = import.meta.env.VITE_API_BASE_URL || 'https://civicsnap-backend-cbsd.onrender.com';
       const res = await fetch(`${apiBase}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email: cleanEmail, password })
       });
 
       const data = await res.json();
 
       if (res.ok) {
+        const isAdmin = Boolean(data.role === 'authority' || cleanEmail === 'admin@civicsnap.com');
+        const role = isAdmin ? 'authority' : 'citizen';
         localStorage.setItem('userId', data.userId);
-        localStorage.setItem('userEmail', email);
-        localStorage.setItem('userRole', email.includes('admin') ? 'authority' : selectedRole);
-        showToast('Signed in successfully. Welcome to CivicSnap.', 'success', 'Authenticated');
+        localStorage.setItem('userEmail', cleanEmail);
+        localStorage.setItem('userName', data.username || (isAdmin ? 'Municipal Admin' : 'Citizen'));
+        localStorage.setItem('userRole', role);
+
+        showToast(
+          isAdmin ? 'Signed in to Admin Dashboard.' : 'Signed in successfully. Welcome to CivicSnap.', 
+          'success', 
+          isAdmin ? 'Admin Portal' : 'Authenticated'
+        );
         navigate('/dashboard');
       } else {
         showToast(data.message || 'Invalid email or password. Please verify credentials.', 'error', 'Sign In Failed');
       }
-    } catch (error) {
-      console.error('Login Error:', error);
+    } catch {
       // Fallback for pre-configured accounts when offline
-      if ((email === 'admin@civicsnap.com' && password === 'admin123') ||
-          (email === 'user@civicsnap.com' && password === 'password123')) {
-        localStorage.setItem('userId', email.includes('admin') ? 'demo-admin-id' : 'demo-user-id');
-        localStorage.setItem('userEmail', email);
-        localStorage.setItem('userRole', email.includes('admin') ? 'authority' : 'citizen');
-        showToast('Signed in successfully. Welcome to CivicSnap.', 'success', 'Session Active');
+      if (cleanEmail === 'admin@civicsnap.com' && password === 'admin123') {
+        localStorage.setItem('userId', 'demo-admin-id');
+        localStorage.setItem('userEmail', cleanEmail);
+        localStorage.setItem('userName', 'Municipal Admin');
+        localStorage.setItem('userRole', 'authority');
+        showToast('Signed in to Admin Dashboard.', 'success', 'Admin Portal');
+        navigate('/dashboard');
+        return;
+      }
+      if (cleanEmail === 'user@civicsnap.com' && password === 'password123') {
+        localStorage.setItem('userId', 'demo-user-id');
+        localStorage.setItem('userEmail', cleanEmail);
+        localStorage.setItem('userName', 'John Citizen');
+        localStorage.setItem('userRole', 'citizen');
+        showToast('Signed in successfully.', 'success', 'Session Active');
         navigate('/dashboard');
         return;
       }
@@ -76,27 +93,7 @@ const Login = () => {
 
           <div className="auth-header-text">
             <h2>Welcome Back</h2>
-            <p>Sign in to monitor community reports and track municipal resolutions.</p>
-          </div>
-
-          {/* Role Switcher */}
-          <div className="role-selector-pill">
-            <button
-              type="button"
-              className={`role-btn ${selectedRole === 'citizen' ? 'active' : ''}`}
-              onClick={() => setSelectedRole('citizen')}
-            >
-              <User size={15} />
-              <span>Citizen</span>
-            </button>
-            <button
-              type="button"
-              className={`role-btn ${selectedRole === 'authority' ? 'active' : ''}`}
-              onClick={() => setSelectedRole('authority')}
-            >
-              <Shield size={15} />
-              <span>Municipal Authority</span>
-            </button>
+            <p>Sign in to your civic dashboard to monitor and report neighborhood issues.</p>
           </div>
 
           {/* Form */}
@@ -126,7 +123,7 @@ const Login = () => {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   id="password"
-                  placeholder="Enter your secure password"
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -143,7 +140,7 @@ const Login = () => {
             </div>
 
             <button type="submit" className="btn-auth-submit interactive-hover" disabled={loading}>
-              <span>{loading ? 'Authenticating...' : `Sign In as ${selectedRole === 'authority' ? 'Authority' : 'Citizen'}`}</span>
+              <span>{loading ? 'Authenticating...' : 'Sign In'}</span>
               <ArrowRight size={18} />
             </button>
           </form>

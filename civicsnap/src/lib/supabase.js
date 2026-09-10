@@ -265,6 +265,66 @@ export const civicDataService = {
   },
 
   /**
+   * Authority/Admin action: Remove spam or inappropriate photo
+   */
+  async removeComplaintPhoto(id) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/complaints/${id}/photo`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        const normalized = {
+          ...updated,
+          id: updated._id || updated.id || id,
+          photo_url: '',
+          photo_removed: true
+        };
+        const localList = getLocalComplaints();
+        saveLocalComplaints(localList.map((c) => (String(c.id) === String(id) || String(c._id) === String(id) ? normalized : c)));
+        return normalized;
+      }
+    } catch {
+      // Local fallback
+    }
+
+    const localList = getLocalComplaints();
+    const updated = localList.map((item) => {
+      if (String(item.id) === String(id) || String(item._id) === String(id)) {
+        return { ...item, photo_url: '', photo_removed: true };
+      }
+      return item;
+    });
+    saveLocalComplaints(updated);
+    return updated.find((c) => String(c.id) === String(id) || String(c._id) === String(id));
+  },
+
+  /**
+   * Authority/Admin action: Delete entire spam or abusive report
+   */
+  async deleteComplaint(id) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/complaints/${id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        const localList = getLocalComplaints();
+        const filtered = localList.filter((c) => String(c.id) !== String(id) && String(c._id) !== String(id));
+        saveLocalComplaints(filtered);
+        return true;
+      }
+    } catch {
+      // Local fallback
+    }
+
+    const localList = getLocalComplaints();
+    const filtered = localList.filter((c) => String(c.id) !== String(id) && String(c._id) !== String(id));
+    saveLocalComplaints(filtered);
+    return true;
+  },
+
+  /**
    * Multi-Device Live Sync: Polls backend every 4 seconds so actions taken on 
    * a mobile phone appear automatically on laptops/other devices.
    */

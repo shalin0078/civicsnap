@@ -20,11 +20,12 @@ router.post('/register', async (req, res) => {
                 return res.status(400).json({ message: 'User already exists' });
             }
             const hashedPassword = await bcrypt.hash(password, 10);
+            const assignedRole = cleanEmail === 'admin@civicsnap.com' ? 'authority' : 'citizen';
             const user = new User({ 
                 username: username || 'Citizen', 
                 email: cleanEmail, 
                 password: hashedPassword,
-                role: role || (cleanEmail.includes('admin') ? 'authority' : 'citizen')
+                role: assignedRole
             });
             await user.save();
             return res.status(201).json({ message: 'User registered successfully', userId: user._id });
@@ -40,13 +41,14 @@ router.post('/register', async (req, res) => {
         return res.status(400).json({ message: 'User already exists' });
     }
 
+    const assignedRole = cleanEmail === 'admin@civicsnap.com' ? 'authority' : 'citizen';
     const newUser = {
         _id: 'user_' + Date.now(),
         id: 'user_' + Date.now(),
         username: username || 'Citizen',
         email: cleanEmail,
         password: password,
-        role: role || (cleanEmail.includes('admin') ? 'authority' : 'citizen'),
+        role: assignedRole,
         created_at: new Date()
     };
     dataStore.addUser(newUser);
@@ -61,11 +63,12 @@ router.post('/login', async (req, res) => {
     // 1. Check dataStore users (includes demo accounts & newly registered users)
     const localUser = dataStore.getUsers().find(u => u.email.toLowerCase() === cleanEmail);
     if (localUser && localUser.password === password) {
+        const role = cleanEmail === 'admin@civicsnap.com' ? 'authority' : 'citizen';
         return res.json({ 
             message: 'Login success', 
             userId: localUser._id || localUser.id, 
             username: localUser.username,
-            role: localUser.role || (cleanEmail.includes('admin') ? 'authority' : 'citizen')
+            role: role
         });
     }
 
@@ -76,11 +79,12 @@ router.post('/login', async (req, res) => {
             if (user) {
                 const isMatch = await bcrypt.compare(password, user.password);
                 if (isMatch) {
+                    const role = cleanEmail === 'admin@civicsnap.com' ? 'authority' : 'citizen';
                     return res.json({ 
                         message: 'Login success', 
                         userId: user._id, 
                         username: user.username,
-                        role: user.role || (cleanEmail.includes('admin') ? 'authority' : 'citizen')
+                        role: role
                     });
                 }
             }
